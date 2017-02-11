@@ -1,0 +1,27 @@
+{
+  "name": "swagger-t-str",
+  "version": "1.0.0",
+  "description": "Specification-Driven test framework",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CloudletLabs/swagger-t-str.git"
+  },
+  "keywords": [
+    "swagger",
+    "test",
+    "tests",
+    "tdd",
+    "bdd",
+    "api"
+  ],
+  "author": "Dmytro Kryvenko",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/CloudletLabs/swagger-t-str/issues"
+  },
+  "homepage": "https://github.com/CloudletLabs/swagger-t-str#readme"
+}
