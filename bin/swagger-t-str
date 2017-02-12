@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+'use strict';
+
+let path = require('path');
+let fs = require('fs');
+let program = require('commander');
+let STS = require('../');
+
+program
+    .version(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version)
+    .option('-p, --protocol [protocol]', 'protocol', 'http')
+    .option('-h, --host [host]', 'host', 'localhost')
+    .option('-p, --port [port]', 'port', 80)
+    .option('-s, --spec [path]', 'spec', './swagger.json')
+    .parse(process.argv);
+
+let sts = new STS(program);
+sts.start();

@@ -3,8 +3,32 @@
   "version": "1.0.0",
   "description": "Specification-Driven test framework",
   "main": "index.js",
+  "bin": {
+    "swagger-t-str": "./bin/swagger-t-str"
+  },
+  "engines": {
+    "node": ">= 0.10.x",
+    "npm": ">= 1.4.x"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test-unit && npm run test-integration",
+    "test-unit": "nyc npm run test-unit-only",
+    "test-unit-only": "NODE_ENV=test mocha './unit-tests/**/*.spec.js'",
+    "test-integration": "exit 1"
+  },
+  "dependencies": {
+    "commander": "=2.9.0",
+    "js-yaml": "=3.7.0",
+    "mocha": "=3.2.0",
+    "chai": "=3.5.0",
+    "sinon": "=1.17.7",
+    "sinon-chai": "=2.8.0",
+    "preq": "=0.5.2"
+  },
+  "devDependencies": {
+    "proxyquire": "=1.7.11",
+    "istanbul": "=0.4.5",
+    "nyc": "=10.1.2"
   },
   "repository": {
     "type": "git",
