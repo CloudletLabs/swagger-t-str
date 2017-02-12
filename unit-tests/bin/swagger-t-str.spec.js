@@ -45,10 +45,14 @@ describe('The bin module', function() {
         expect(pathStub.join).to.have.been.calledWithExactly(sinon.match.string, '..', 'package.json');
         expect(fsStub.readFileSync).to.have.been.calledWithExactly(pathStub, 'utf8');
         expect(commanderStub.version).to.have.been.calledWithExactly('1.2.3');
-        expect(commanderStub.option).to.have.been.calledWithExactly('-p, --protocol [protocol]', 'protocol', 'http');
-        expect(commanderStub.option).to.have.been.calledWithExactly('-h, --host [host]', 'host', 'localhost');
-        expect(commanderStub.option).to.have.been.calledWithExactly('-P, --port [port]', 'port', 80);
-        expect(commanderStub.option).to.have.been.calledWithExactly('-s, --spec [path]', 'spec', './swagger.json');
+        expect(commanderStub.option).to.have.been.calledWithExactly(
+            '-p, --protocol [protocol]', 'protocol [http, https], default http', 'http');
+        expect(commanderStub.option).to.have.been.calledWithExactly(
+            '-h, --host [host]', 'API host, default localhost', 'localhost');
+        expect(commanderStub.option).to.have.been.calledWithExactly(
+            '-P, --port [port]', 'API port, default 8081', '8081');
+        expect(commanderStub.option).to.have.been.calledWithExactly(
+            '-s, --spec [path]', 'json/yaml swagger file path, default ./swagger.yml', './swagger.yml');
         expect(commanderStub.parse).to.have.been.calledWithExactly(process.argv);
         expect(STSSpy).to.have.been.calledWithExactly(commanderStub);
         expect(STSMock.prototype.start).to.have.been.calledWithExactly(sinon.match.func);

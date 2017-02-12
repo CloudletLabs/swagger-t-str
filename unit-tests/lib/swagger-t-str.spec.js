@@ -18,27 +18,37 @@ describe('The lib module', function() {
         sinonChaiStub,
         programStub,
         specStub,
-        STS;
+        STS,
+        sts;
 
     beforeEach(function () {
         yamlStub = sandbox.stub();
+
         fsStub = sandbox.stub();
         fsStub.readFileSync = sandbox.stub().returns(fsStub);
+
         preqStub = sandbox.stub();
         preqStub.get = sandbox.stub().returns(preqStub);
         preqStub.post = sandbox.stub().returns(preqStub);
-        preqStub.put = sandbox.stub().returns(preqStub);
-        preqStub.delete = sandbox.stub().returns(preqStub);
+        preqStub.then = sandbox.stub().returns(preqStub);
+
         mochaStub = function Mocha() { };
-        mochaStub.Suite = sandbox.stub();
-        mochaStub.Suite.create = sandbox.stub().returns(mochaStub);
         mochaStub.prototype.suite = sandbox.stub();
         mochaStub.prototype.run = sandbox.stub();
-        mochaStub.prototype.addSuite = sandbox.stub().returns(mochaStub);
+        mochaStub.Suite = function Suite(name) {
+            this.name = name;
+        };
+        mochaStub.Suite.create = sandbox.stub().returns(mochaStub);
+        mochaStub.Suite.prototype.addSuite = sandbox.stub().returns(mochaStub);
+        mochaStub.Suite.prototype.addTest = function (suit) {
+            if (!this.suits) this.suits = [];
+            this.suits.push(suit);
+        };
         mochaStub.Test = function Test(name, test) {
             this.name = name;
             this.test = test;
         };
+
         sinonStub = sandbox.stub();
         chaiStub = sandbox.stub();
         chaiStub.use = sandbox.stub();
@@ -46,13 +56,17 @@ describe('The lib module', function() {
         chaiStub.expect = sandbox.stub().returns(chaiStub);
         chaiStub.to = chaiStub;
         chaiStub.eql = sandbox.stub().returns(chaiStub);
+
         programStub = sandbox.stub();
         programStub.protocol = 'test_protocol';
         programStub.host = 'test_host';
         programStub.port = 'test_port';
         programStub.spec = sandbox.stub();
+
         specStub = sandbox.stub();
+        specStub.basePath = '/test_base_path';
         yamlStub.safeLoad = sandbox.stub().returns(specStub);
+
         STS = proxyquire('../../lib/swagger-t-str', {
             'js-yaml': yamlStub,
             'fs': fsStub,
@@ -62,6 +76,7 @@ describe('The lib module', function() {
             'chai': chaiStub,
             'sinon-chai': sinonChaiStub
         });
+        sts = new STS(programStub);
     });
 
     afterEach(function () {
@@ -73,14 +88,13 @@ describe('The lib module', function() {
 
         let sts = new STS(programStub);
         expect(sts.spec).to.equals(specStub);
-        expect(sts.uri).to.equals('test_protocol://test_host:test_portundefined');
+        expect(sts.uri).to.equals('test_protocol://test_host:test_port/test_base_path');
         expect(fsStub.readFileSync).to.have.been.calledWithExactly(programStub.spec, 'utf8');
         expect(yamlStub.safeLoad).to.have.been.calledWithExactly(fsStub);
     });
 
     describe('STS', function () {
         it('should start', function () {
-            let sts = new STS(programStub);
             sts.spec = {
                 paths: {
                     '/test1': {
@@ -113,80 +127,83 @@ describe('The lib module', function() {
             };
             let addSuitStub = sandbox.stub(sts, 'addSuit');
             addSuitStub.returns(addSuitStub);
-            let getTestsStub = sandbox.stub(sts, 'getExamples');
-            getTestsStub.returns(getTestsStub);
-            let doTestStub = sandbox.stub(sts, 'test');
+            let testStub = sandbox.stub(sts, 'test');
             let callbackStub = sandbox.stub();
 
             sts.start(callbackStub);
 
-            expect(getTestsStub).to.have.been.callCount(4);
-            expect(addSuitStub).to.have.been.callCount(9);
-            expect(addSuitStub).to.have.been.calledWithExactly('/test1');
-            expect(addSuitStub).to.have.been.calledWithExactly('get', addSuitStub);
+            expect(addSuitStub).to.have.been.callCount(10);
+            expect(addSuitStub).to.have.been.calledWithExactly('test_protocol://test_host:test_port/test_base_path');
+            expect(addSuitStub).to.have.been.calledWithExactly('/test1', addSuitStub);
+            expect(addSuitStub).to.have.been.calledWithExactly('GET', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('200', addSuitStub);
-            expect(getTestsStub).to.have.been.calledWithExactly('/test1', 'get', 200, ['ex1', 'ex2']);
-            expect(addSuitStub).to.have.been.calledWithExactly('post', addSuitStub);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', 'get', '200', ['ex1', 'ex2']);
+            expect(addSuitStub).to.have.been.calledWithExactly('POST', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('300', addSuitStub);
-            expect(getTestsStub).to.have.been.calledWithExactly('/test1', 'post', 300, ['ex3']);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', 'post', '300', ['ex3']);
             expect(addSuitStub).to.have.been.calledWithExactly('400', addSuitStub);
-            expect(getTestsStub).to.have.been.calledWithExactly('/test1', 'post', 400, []);
-            expect(addSuitStub).to.have.been.calledWithExactly('/test2');
-            expect(addSuitStub).to.have.been.calledWithExactly('put', addSuitStub);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', 'post', '400', undefined);
+            expect(addSuitStub).to.have.been.calledWithExactly('/test2', addSuitStub);
+            expect(addSuitStub).to.have.been.calledWithExactly('PUT', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('500', addSuitStub);
-            expect(getTestsStub).to.have.been.calledWithExactly('/test2', 'put', 500, []);
-            expect(doTestStub).to.have.been.calledWithExactly(addSuitStub, getTestsStub).callCount(4);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test2', 'put', '500', []);
             expect(mochaStub.prototype.run).to.have.been.calledWithExactly(callbackStub);
         });
 
-        it('should create root suite', function () {
-            let sts = new STS(programStub);
-            let nameStub = sandbox.stub();
+        describe('adding suits', function () {
+            let nameStub;
 
-            expect(sts.addSuit(nameStub)).to.equals(mochaStub);
+            beforeEach(function () {
+                nameStub = sandbox.stub();
+            });
 
-            expect(mochaStub.Suite.create).to.have.been.calledWithExactly(mochaStub.prototype.suite, nameStub);
-        });
+            it('should create root suite', function () {
+                expect(sts.addSuit(nameStub)).to.equals(mochaStub);
 
-        it('should create child suite', function () {
-            let sts = new STS(programStub);
-            let nameStub = sandbox.stub();
-            mochaStub.addSuite = sandbox.stub().returns(mochaStub);
+                expect(mochaStub.Suite.create).to.have.been.calledWithExactly(mochaStub.prototype.suite, nameStub);
+            });
 
-            expect(sts.addSuit(nameStub, mochaStub)).to.equals(mochaStub);
+            it('should create child suite', function () {
+                let parentMock = new mochaStub.Suite(null);
 
-            expect(mochaStub.Suite.create).to.have.been.calledWithExactly(mochaStub.prototype.suite, nameStub);
-            expect(mochaStub.addSuite).to.have.been.calledWithExactly(mochaStub);
+                let suit = sts.addSuit(nameStub, parentMock);
+
+                expect(suit.name).to.equals(nameStub);
+                expect(mochaStub.Suite.prototype.addSuite).to.have.been.calledWithExactly(suit);
+            });
         });
 
         describe('get examples', function () {
-            let pathStub,
+            let pathMock,
                 methodStub,
                 codeStub;
-            
+
             beforeEach(function () {
-                pathStub = sandbox.stub();
+                pathMock = '/test_path';
                 methodStub = sandbox.stub();
                 codeStub = sandbox.stub();
             });
 
             it('should get for empty', function () {
                 let examplesMock = [];
-
-                let sts = new STS(programStub);
-                let test = sts.getExamples(pathStub, methodStub, codeStub, examplesMock);
-                expect(test).to.eqls([
+                let expected = [
                     {
                         description: 'default',
                         request: {
                             method: methodStub,
-                            uri: 'test_protocol://test_host:test_portundefinedstub'
+                            uri: 'test_protocol://test_host:test_port/test_base_path/test_path'
                         },
                         response: {
                             status: codeStub
                         }
                     }
-                ]);
+                ];
+
+                let test1 = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
+                expect(test1).to.eqls(expected);
+
+                let test2 = sts.getExamples(pathMock, methodStub, codeStub, undefined);
+                expect(test2).to.eqls(expected);
             });
 
             it('should get samples', function () {
@@ -204,14 +221,13 @@ describe('The lib module', function() {
                     }
                 ];
 
-                let sts = new STS(programStub);
-                let test = sts.getExamples(pathStub, methodStub, codeStub, examplesMock);
+                let test = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
                 expect(test).to.eqls([
                     {
                         description: 'test1',
                         request: {
                             method: methodStub,
-                            uri: 'test_protocol://test_host:test_portundefinedstub'
+                            uri: 'test_protocol://test_host:test_port/test_base_path/test_path'
                         },
                         response: {
                             status: codeStub
@@ -222,7 +238,7 @@ describe('The lib module', function() {
                         field1: 'value1',
                         request: {
                             method: methodStub,
-                            uri: 'test_protocol://test_host:test_portundefinedstub',
+                            uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
                             field2: 'value2'
                         },
                         response: {
@@ -235,16 +251,19 @@ describe('The lib module', function() {
         });
 
         it('should define test', function () {
-            let testMock = [
+            let suitMock = new mochaStub.Suite(null);
+            let pathStub = sandbox.stub();
+            let methodStub = sandbox.stub();
+            let codeMock = '323';
+            let examplesStub = sandbox.stub();
+            let examplesMock = [
                 {
                     description: 'test 1',
                     request: {
                         method: 'get'
                     },
                     response: {
-                        status: 200,
-                        headers: {},
-                        body: {}
+                        status: 200
                     }
                 },
                 {
@@ -257,38 +276,136 @@ describe('The lib module', function() {
                     }
                 }
             ];
-            let suitStub = sandbox.stub();
-            suitStub.addTest = sandbox.stub();
-            let responseStub = sandbox.stub();
-            responseStub.headers = sandbox.stub();
-            responseStub.body = sandbox.stub();
-            let errorStub = sandbox.stub();
-            errorStub.message = sandbox.stub();
-            preqStub.then = sandbox.stub();
-            preqStub.then.onFirstCall().yields(responseStub);
-            preqStub.then.onSecondCall().callsArgWith(1, errorStub);
+            let getExamplesStub = sandbox.stub(sts, 'getExamples').returns(examplesMock);
 
-            let sts = new STS(programStub);
-            sts.test(suitStub, testMock);
+            sts.test(suitMock, pathStub, methodStub, codeMock, examplesStub);
 
-            expect(suitStub.addTest).to.have.been.called.callCount(2);
-            expect(suitStub.addTest.args[0][0].name).to.eql('GET 200: test 1');
-            expect(suitStub.addTest.args[0][0].test).to.be.function;
-            expect(suitStub.addTest.args[1][0].name).to.eql('POST 300: test 2');
-            expect(suitStub.addTest.args[1][0].test).to.be.function;
+            expect(getExamplesStub).to.have.been.calledWithExactly(pathStub, methodStub, 323, examplesStub);
+            expect(suitMock.suits.length).to.equals(2);
+            expect(suitMock.suits[0]['name']).to.eql('GET 200: test 1');
+            expect(suitMock.suits[0]['test']).to.be.a.function;
+            expect(suitMock.suits[1]['name']).to.eql('POST 300: test 2');
+            expect(suitMock.suits[1]['test']).to.be.a.function;
 
-            suitStub.addTest.args[0][0].test();
-            expect(preqStub.get).to.have.been.calledWithExactly(testMock[0].request);
-            expect(chaiStub.eql).to.have.been.calledWithExactly(testMock[0].response);
-            expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
+            let doTestStub = sandbox.stub(sts, 'doTest');
+            doTestStub.returns(doTestStub);
 
-            suitStub.addTest.args[1][0].test();
-            expect(preqStub.post).to.have.been.calledWithExactly(testMock[1].request);
-            expect(chaiStub.eql).to.have.been.calledWithExactly(testMock[1].response);
-            expect(errorStub.headers).to.not.exist;
-            expect(errorStub.body).to.not.exist;
-            expect(errorStub.message).to.not.exist;
+            let result0 = suitMock.suits[0]['test']();
+            expect(doTestStub).to.have.been.calledWithExactly(examplesMock[0]);
+            expect(result0).to.eql(doTestStub);
+
+            let result1 = suitMock.suits[1]['test']();
+            expect(doTestStub).to.have.been.calledWithExactly(examplesMock[1]);
+            expect(result1).to.eql(doTestStub);
+        });
+
+        describe('do test', function () {
+            let validateStub;
+            
+            beforeEach(function () {
+                validateStub = sandbox.stub(sts, 'validate');
+            });
+
+            it('should test success response', function () {
+                let exampleMock = {
+                    request: {
+                        method: 'get'
+                    }
+                };
+                let responseStub = sandbox.stub();
+                preqStub.then.yields(responseStub);
+
+                sts.doTest(exampleMock);
+
+                expect(preqStub.get).to.have.been.calledWithExactly(exampleMock.request);
+                expect(validateStub).to.have.been.calledWithExactly(exampleMock, responseStub);
+            });
+            
+            describe('error', function () {
+                let exampleMock,
+                    errorMock;
+                
+                beforeEach(function () {
+                    exampleMock = {
+                        request: {
+                            method: 'post'
+                        },
+                        response: {}
+                    };
+                    errorMock = {
+                        name: sandbox.stub(),
+                        message: sandbox.stub()
+                    };
+                    preqStub.then.callsArgWith(1, errorMock);
+                });
+
+                let commotTest = function () {
+                    expect(preqStub.post).to.have.been.calledWithExactly(exampleMock.request);
+                    expect(validateStub).to.have.been.calledWithExactly(exampleMock, errorMock);
+                };
+
+                it('should test error response', function () {
+                    exampleMock.response = {
+                        name: sandbox.stub(),
+                        message: sandbox.stub()
+                    };
+
+                    sts.doTest(exampleMock);
+
+                    commotTest();
+                    expect(errorMock).to.have.property('name');
+                    expect(errorMock).to.have.property('message');
+                });
+
+                it('should test error response removing field', function () {
+                    sts.doTest(exampleMock);
+
+                    commotTest();
+                    expect(errorMock).not.to.have.property('name');
+                    expect(errorMock).not.to.have.property('message');
+                });
+            });
+        });
+        
+        describe('validate', function () {
+            let exampleMock,
+                respMock;
+
+            beforeEach(function () {
+                exampleMock = {
+                    response: {}
+                };
+                respMock = {
+                    headers: sandbox.stub(),
+                    body: sandbox.stub()
+                }
+            });
+
+            let commotTest = function () {
+                expect(chaiStub.expect).to.have.been.calledWithExactly(respMock);
+                expect(chaiStub.eql).to.have.been.calledWithExactly(exampleMock.response);
+            };
+
+            it('should validate', function () {
+                exampleMock.response = {
+                    headers: sandbox.stub(),
+                    body: sandbox.stub()
+                };
+
+                sts.validate(exampleMock, respMock);
+
+                commotTest();
+                expect(respMock).to.have.property('headers');
+                expect(respMock).to.have.property('body');
+            });
+
+            it('should validate removing fields', function () {
+                sts.validate(exampleMock, respMock);
+
+                commotTest();
+                expect(respMock).not.to.have.property('headers');
+                expect(respMock).not.to.have.property('body');
+            });
         });
     });
-
 });
