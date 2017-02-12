@@ -192,7 +192,7 @@ describe('The lib module', function() {
             it('should get for empty', function () {
                 let expected = [
                     {
-                        description: 'default',
+                        description: 'should return HTTP status code',
                         request: {
                             method: methodStub,
                             uri: 'test_protocol://test_host:test_port/test_base_path/test_path',

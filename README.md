@@ -46,7 +46,7 @@ paths:
         '200':
           description: OK
           x-amples:
-            - description: Test info body
+            - description: should return info object
               response:
                 body:
                   version: '1.1'
@@ -59,11 +59,11 @@ Output:
     /status
       GET
         200
-          ✓ GET 200: default
+          ✓ GET 200: should return HTTP status code
     /info
       GET
         200
-          ✓ GET 200: Test info body
+          ✓ GET 200: should return info object
 ```
 
 # Auth
@@ -95,7 +95,7 @@ paths:
         '200':
           description: List of users
           x-amples:
-            - description: Getting list of users
+            - description: should return the list of users
               auth: true # here is we enabling auth only for this specific sample
               response:
                 body: []
@@ -124,7 +124,7 @@ paths:
         '200':
           description: OK
           x-amples:
-            - description: Test auth token deletion ok
+            - description: should delete auth token
               request:
                 parameters:
                   username: admin
