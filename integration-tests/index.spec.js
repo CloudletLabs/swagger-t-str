@@ -11,7 +11,7 @@ server.start(8081, {}, function(err, app) {
 
     server.mockDataStore.createResource('/api/info', '/api/info', {version: '1.1'});
     server.post('/auth_token', function (req, res, next) {
-        if (req.header('Authorization') != 'qwe') return res.status(401).send('Unauthorized');
+        if (req.header('Authorization') != 'Basic qwe') return res.status(401).send('Unauthorized');
         res.status(200).json({auth_token: 'abc'});
     });
     server.delete('/auth_token/{token}', function (req, res, next) {

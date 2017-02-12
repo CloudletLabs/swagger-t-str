@@ -11,6 +11,18 @@ consumes:
 produces:
   - application/json
 
+securityDefinitions:
+  Basic:
+    type: basic
+    description: Password auth
+    x-ample: Basic qwe
+  Bearer:
+    type: apiKey
+    description: Token auth
+    in: header
+    name: Authorization
+    x-ample: Bearer abc
+
 definitions:
   infoo:
     properties:
@@ -48,14 +60,14 @@ paths:
   /auth_token:
     post:
       description: Get auth token for username+password pair
+      security:
+        - Basic: []
       responses:
         '200':
           description: OK
           x-amples:
             - description: Test auth token ok
-              request:
-                headers:
-                  Authorization: qwe
+              auth: true
               response:
                 body:
                   auth_token: 'abc'
@@ -64,6 +76,8 @@ paths:
   '/auth_token/{token}':
     delete:
       description: Delete token
+      security:
+        - Bearer: []
       parameters:
         - description: Token
           in: path
@@ -75,9 +89,8 @@ paths:
           description: OK
           x-amples:
             - description: Test auth token deletion ok
+              auth: true
               request:
-                headers:
-                  Authorization: Bearer abc
                 parameters:
                   token: xyz
         '401':
