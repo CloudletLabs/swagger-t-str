@@ -10,9 +10,11 @@ program
     .version(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version)
     .option('-p, --protocol [protocol]', 'protocol', 'http')
     .option('-h, --host [host]', 'host', 'localhost')
-    .option('-p, --port [port]', 'port', 80)
+    .option('-P, --port [port]', 'port', 80)
     .option('-s, --spec [path]', 'spec', './swagger.json')
     .parse(process.argv);
 
 let sts = new STS(program);
-sts.start();
+sts.start(function(failures){
+    process.exit(failures);
+});

@@ -29,17 +29,23 @@ describe('The lib module', function() {
         preqStub.post = sandbox.stub().returns(preqStub);
         preqStub.put = sandbox.stub().returns(preqStub);
         preqStub.delete = sandbox.stub().returns(preqStub);
-        mochaStub = sandbox.stub();
-        mochaStub.describe = sandbox.stub().yields();
-        mochaStub.it = sandbox.stub();
-        mochaStub.it.withArgs(sinon.match.string, sinon.match.func).yields();
+        mochaStub = function Mocha() { };
+        mochaStub.Suite = sandbox.stub();
+        mochaStub.Suite.create = sandbox.stub().returns(mochaStub);
+        mochaStub.prototype.suite = sandbox.stub();
+        mochaStub.prototype.run = sandbox.stub();
+        mochaStub.prototype.addSuite = sandbox.stub().returns(mochaStub);
+        mochaStub.Test = function Test(name, test) {
+            this.name = name;
+            this.test = test;
+        };
         sinonStub = sandbox.stub();
         chaiStub = sandbox.stub();
         chaiStub.use = sandbox.stub();
         sinonChaiStub = sandbox.stub();
         chaiStub.expect = sandbox.stub().returns(chaiStub);
         chaiStub.to = chaiStub;
-        chaiStub.eq = sandbox.stub().returns(chaiStub);
+        chaiStub.eql = sandbox.stub().returns(chaiStub);
         programStub = sandbox.stub();
         programStub.protocol = 'test_protocol';
         programStub.host = 'test_host';
@@ -75,21 +81,6 @@ describe('The lib module', function() {
     describe('STS', function () {
         it('should start', function () {
             let sts = new STS(programStub);
-
-            let test1Stub = sandbox.stub();
-            let test2Stub = sandbox.stub();
-            let getTestsStub = sandbox.stub(sts, 'getTests').returns([test1Stub, test2Stub]);
-            let testsStub = sandbox.stub(sts, 'test');
-
-            sts.start();
-
-            expect(getTestsStub).to.have.been.calledWithExactly();
-            expect(testsStub).to.have.been.calledWithExactly(test1Stub);
-            expect(testsStub).to.have.been.calledWithExactly(test2Stub);
-        });
-
-        it('should get tests', function () {
-            let sts = new STS(programStub);
             sts.spec = {
                 paths: {
                     '/test1': {
@@ -120,20 +111,55 @@ describe('The lib module', function() {
                     }
                 }
             };
-            let getTestStub = sandbox.stub(sts, 'getTest');
-            getTestStub.returns(getTestStub);
+            let addSuitStub = sandbox.stub(sts, 'addSuit');
+            addSuitStub.returns(addSuitStub);
+            let getTestsStub = sandbox.stub(sts, 'getExamples');
+            getTestsStub.returns(getTestsStub);
+            let doTestStub = sandbox.stub(sts, 'test');
+            let callbackStub = sandbox.stub();
 
-            let tests = sts.getTests();
+            sts.start(callbackStub);
 
-            expect(tests.length).to.equals(4);
-            expect(getTestStub).to.have.been.callCount(4);
-            expect(getTestStub).to.have.been.calledWithExactly('/test1', 'get', 200, ['ex1', 'ex2']);
-            expect(getTestStub).to.have.been.calledWithExactly('/test1', 'post', 300, ['ex3']);
-            expect(getTestStub).to.have.been.calledWithExactly('/test1', 'post', 400, []);
-            expect(getTestStub).to.have.been.calledWithExactly('/test2', 'put', 500, []);
+            expect(getTestsStub).to.have.been.callCount(4);
+            expect(addSuitStub).to.have.been.callCount(9);
+            expect(addSuitStub).to.have.been.calledWithExactly('/test1');
+            expect(addSuitStub).to.have.been.calledWithExactly('get', addSuitStub);
+            expect(addSuitStub).to.have.been.calledWithExactly('200', addSuitStub);
+            expect(getTestsStub).to.have.been.calledWithExactly('/test1', 'get', 200, ['ex1', 'ex2']);
+            expect(addSuitStub).to.have.been.calledWithExactly('post', addSuitStub);
+            expect(addSuitStub).to.have.been.calledWithExactly('300', addSuitStub);
+            expect(getTestsStub).to.have.been.calledWithExactly('/test1', 'post', 300, ['ex3']);
+            expect(addSuitStub).to.have.been.calledWithExactly('400', addSuitStub);
+            expect(getTestsStub).to.have.been.calledWithExactly('/test1', 'post', 400, []);
+            expect(addSuitStub).to.have.been.calledWithExactly('/test2');
+            expect(addSuitStub).to.have.been.calledWithExactly('put', addSuitStub);
+            expect(addSuitStub).to.have.been.calledWithExactly('500', addSuitStub);
+            expect(getTestsStub).to.have.been.calledWithExactly('/test2', 'put', 500, []);
+            expect(doTestStub).to.have.been.calledWithExactly(addSuitStub, getTestsStub).callCount(4);
+            expect(mochaStub.prototype.run).to.have.been.calledWithExactly(callbackStub);
         });
 
-        describe('get test', function () {
+        it('should create root suite', function () {
+            let sts = new STS(programStub);
+            let nameStub = sandbox.stub();
+
+            expect(sts.addSuit(nameStub)).to.equals(mochaStub);
+
+            expect(mochaStub.Suite.create).to.have.been.calledWithExactly(mochaStub.prototype.suite, nameStub);
+        });
+
+        it('should create child suite', function () {
+            let sts = new STS(programStub);
+            let nameStub = sandbox.stub();
+            mochaStub.addSuite = sandbox.stub().returns(mochaStub);
+
+            expect(sts.addSuit(nameStub, mochaStub)).to.equals(mochaStub);
+
+            expect(mochaStub.Suite.create).to.have.been.calledWithExactly(mochaStub.prototype.suite, nameStub);
+            expect(mochaStub.addSuite).to.have.been.calledWithExactly(mochaStub);
+        });
+
+        describe('get examples', function () {
             let pathStub,
                 methodStub,
                 codeStub;
@@ -148,23 +174,19 @@ describe('The lib module', function() {
                 let examplesMock = [];
 
                 let sts = new STS(programStub);
-                let test = sts.getTest(pathStub, methodStub, codeStub, examplesMock);
-                expect(test).to.eqls({
-                    path: pathStub,
-                    method: methodStub,
-                    examples: [
-                        {
-                            description: 'default',
-                            request: {
-                                method: methodStub,
-                                uri: 'test_protocol://test_host:test_portundefinedstub'
-                            },
-                            response: {
-                                status: codeStub
-                            }
+                let test = sts.getExamples(pathStub, methodStub, codeStub, examplesMock);
+                expect(test).to.eqls([
+                    {
+                        description: 'default',
+                        request: {
+                            method: methodStub,
+                            uri: 'test_protocol://test_host:test_portundefinedstub'
+                        },
+                        response: {
+                            status: codeStub
                         }
-                    ]
-                });
+                    }
+                ]);
             });
 
             it('should get samples', function () {
@@ -183,78 +205,78 @@ describe('The lib module', function() {
                 ];
 
                 let sts = new STS(programStub);
-                let test = sts.getTest(pathStub, methodStub, codeStub, examplesMock);
-                expect(test).to.eqls({
-                    path: pathStub,
-                    method: methodStub,
-                    examples: [
-                        {
-                            description: 'test1',
-                            request: {
-                                method: methodStub,
-                                uri: 'test_protocol://test_host:test_portundefinedstub'
-                            },
-                            response: {
-                                status: codeStub
-                            }
+                let test = sts.getExamples(pathStub, methodStub, codeStub, examplesMock);
+                expect(test).to.eqls([
+                    {
+                        description: 'test1',
+                        request: {
+                            method: methodStub,
+                            uri: 'test_protocol://test_host:test_portundefinedstub'
                         },
-                        {
-                            description: 'test2',
-                            field1: 'value1',
-                            request: {
-                                method: methodStub,
-                                uri: 'test_protocol://test_host:test_portundefinedstub',
-                                field2: 'value2'
-                            },
-                            response: {
-                                status: codeStub,
-                                field3: 'value3'
-                            }
+                        response: {
+                            status: codeStub
                         }
-                    ]
-                });
+                    },
+                    {
+                        description: 'test2',
+                        field1: 'value1',
+                        request: {
+                            method: methodStub,
+                            uri: 'test_protocol://test_host:test_portundefinedstub',
+                            field2: 'value2'
+                        },
+                        response: {
+                            status: codeStub,
+                            field3: 'value3'
+                        }
+                    }
+                ]);
             });
         });
 
         it('should define test', function () {
-            let testMock = {
-                path: 'test path',
-                method: 'test method',
-                examples: [
-                    {
-                        description: 'test 1',
-                        request: {
-                            method: 'get'
-                        },
-                        response: {
-                            status: 200
-                        }
+            let testMock = [
+                {
+                    description: 'test 1',
+                    request: {
+                        method: 'get'
                     },
-                    {
-                        description: 'test 2',
-                        request: {
-                            method: 'post'
-                        },
-                        response: {
-                            status: 300
-                        }
+                    response: {
+                        status: 200
                     }
-                ]
-            };
+                },
+                {
+                    description: 'test 2',
+                    request: {
+                        method: 'post'
+                    },
+                    response: {
+                        status: 300
+                    }
+                }
+            ];
+            let suitStub = sandbox.stub();
+            suitStub.addTest = sandbox.stub();
             let responseStub = sandbox.stub();
             preqStub.then = sandbox.stub().yields(responseStub);
 
             let sts = new STS(programStub);
-            sts.test(testMock);
+            sts.test(suitStub, testMock);
 
-            expect(mochaStub.describe).to.have.been.calledWithExactly('test path', sinon.match.func);
-            expect(mochaStub.describe).to.have.been.calledWithExactly('test method', sinon.match.func);
-            expect(mochaStub.it).to.have.been.calledWithExactly('200: test 1', sinon.match.func);
-            expect(preqStub.get).to.have.been.calledWithExactly(testMock.examples[0].request);
-            expect(preqStub.post).to.have.been.calledWithExactly(testMock.examples[1].request);
+            expect(suitStub.addTest).to.have.been.called.callCount(2);
+            expect(suitStub.addTest.args[0][0].name).to.eql('GET 200: test 1');
+            expect(suitStub.addTest.args[0][0].test).to.be.function;
+            expect(suitStub.addTest.args[1][0].name).to.eql('POST 300: test 2');
+            expect(suitStub.addTest.args[1][0].test).to.be.function;
+
+            suitStub.addTest.args[0][0].test();
+            suitStub.addTest.args[1][0].test();
+
+            expect(preqStub.get).to.have.been.calledWithExactly(testMock[0].request);
+            expect(preqStub.post).to.have.been.calledWithExactly(testMock[1].request);
             expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub).callCount(2);
-            expect(chaiStub.eq).to.have.been.calledWithExactly(testMock.examples[0].response);
-            expect(chaiStub.eq).to.have.been.calledWithExactly(testMock.examples[1].response);
+            expect(chaiStub.eql).to.have.been.calledWithExactly(testMock[0].response);
+            expect(chaiStub.eql).to.have.been.calledWithExactly(testMock[1].response);
         });
     });
 

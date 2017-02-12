@@ -47,10 +47,14 @@ describe('The bin module', function() {
         expect(commanderStub.version).to.have.been.calledWithExactly('1.2.3');
         expect(commanderStub.option).to.have.been.calledWithExactly('-p, --protocol [protocol]', 'protocol', 'http');
         expect(commanderStub.option).to.have.been.calledWithExactly('-h, --host [host]', 'host', 'localhost');
-        expect(commanderStub.option).to.have.been.calledWithExactly('-p, --port [port]', 'port', 80);
+        expect(commanderStub.option).to.have.been.calledWithExactly('-P, --port [port]', 'port', 80);
         expect(commanderStub.option).to.have.been.calledWithExactly('-s, --spec [path]', 'spec', './swagger.json');
         expect(commanderStub.parse).to.have.been.calledWithExactly(process.argv);
         expect(STSSpy).to.have.been.calledWithExactly(commanderStub);
-        expect(STSMock.prototype.start).to.have.been.calledWithExactly();
+        expect(STSMock.prototype.start).to.have.been.calledWithExactly(sinon.match.func);
+
+        let exitStub = sandbox.stub(process, 'exit');
+        STSMock.prototype.start.args[0][0](1);
+        expect(exitStub).to.have.been.calledWithExactly(1);
     });
 });

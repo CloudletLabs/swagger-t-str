@@ -1,0 +1,36 @@
+swagger: '2.0'
+info:
+  title: swagger-t-str-mock
+  version: '1'
+  description: This is the mock API specs
+basePath: /api
+schemes:
+  - http
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  /status:
+    get:
+      description: Get service status
+      produces:
+        - text/html
+      responses:
+        '200':
+          description: OK
+  /info:
+    get:
+      description: Get service info
+      responses:
+        '200':
+          description: OK
+  /auth_token:
+    post:
+      description: Get auth token for username+password pair
+      responses:
+        '200':
+          description: OK
+        '401':
+          description: Unauthorized
