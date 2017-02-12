@@ -1,5 +1,8 @@
 # swagger-t-str
+
 Swagger Specification-Driven test framework
+
+[![Build Status](https://travis-ci.org/travis-ci/travis-web.svg?branch=master)](https://travis-ci.org/travis-ci/travis-web)
 
 # Usage
 
