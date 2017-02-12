@@ -24,7 +24,7 @@ For each request you can add a list of `x-amples`, specifying set of different r
 
 If no `x-amples` provided, endpoint will be tested against given HTTP method with empty request object and only response code will be validated.
 
-```
+```yaml
 paths:
   /auth_token:
     post:
@@ -46,7 +46,7 @@ paths:
 
 Output:
 
-```
+```spec
   http://localhost:8081/api
     /auth_token
       POST
@@ -54,6 +54,37 @@ Output:
           ✓ POST 200: Test auth token ok
         401
           ✓ POST 401: default
+```
+
+# Parameterized URL
+
+It is supported an automatic URL parameters substitution from `x-amples` list of parameters.
+
+In the example below it is demonstrated how to perform a `DELETE` request to `/auth_token/xyz`
+
+```yaml
+paths:
+  '/auth_token/{token}':
+    delete:
+      description: Delete token
+      parameters:
+        - description: Token
+          in: path
+          name: token
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: Test auth token deletion ok
+              request:
+                headers:
+                  Authorization: Bearer abc
+                parameters:
+                  token: xyz
+        '401':
+          description: Unauthorized
 ```
 
 # Programmatically

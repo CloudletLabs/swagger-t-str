@@ -14,6 +14,11 @@ server.start(8081, {}, function(err, app) {
         if (req.header('Authorization') != 'qwe') return res.status(401).send('Unauthorized');
         res.status(200).json({auth_token: 'abc'});
     });
+    server.delete('/auth_token/{token}', function (req, res, next) {
+        if (req.header('Authorization') != 'Bearer abc') return res.status(401).send('Unauthorized');
+        if (req.swagger.params.token != 'xyz') return res.status(500).send('Internal server error');
+        res.status(200).send();
+    });
 
     let program = {
         protocol: 'http',

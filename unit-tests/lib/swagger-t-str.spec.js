@@ -116,6 +116,7 @@ describe('The lib module', function() {
                     },
                     '/test2': {
                         put: {
+                            parameters: {},
                             responses: {
                                 500: {
                                     'x-amples': []
@@ -137,16 +138,16 @@ describe('The lib module', function() {
             expect(addSuitStub).to.have.been.calledWithExactly('/test1', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('GET', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('200', addSuitStub);
-            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', 'get', '200', ['ex1', 'ex2']);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', undefined, 'get', '200', ['ex1', 'ex2']);
             expect(addSuitStub).to.have.been.calledWithExactly('POST', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('300', addSuitStub);
-            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', 'post', '300', ['ex3']);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', undefined, 'post', '300', ['ex3']);
             expect(addSuitStub).to.have.been.calledWithExactly('400', addSuitStub);
-            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', 'post', '400', undefined);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test1', undefined, 'post', '400', undefined);
             expect(addSuitStub).to.have.been.calledWithExactly('/test2', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('PUT', addSuitStub);
             expect(addSuitStub).to.have.been.calledWithExactly('500', addSuitStub);
-            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test2', 'put', '500', []);
+            expect(testStub).to.have.been.calledWithExactly(addSuitStub, '/test2', {}, 'put', '500', []);
             expect(mochaStub.prototype.run).to.have.been.calledWithExactly(callbackStub);
         });
 
@@ -176,12 +177,16 @@ describe('The lib module', function() {
         describe('get examples', function () {
             let pathMock,
                 methodStub,
-                codeStub;
+                codeStub,
+                parametersStub,
+                addUrlParametersStub;
 
             beforeEach(function () {
                 pathMock = '/test_path';
                 methodStub = sandbox.stub();
                 codeStub = sandbox.stub();
+                parametersStub = sandbox.stub();
+                addUrlParametersStub = sandbox.stub(sts, 'addUrlParameters');
             });
 
             it('should get for empty', function () {
@@ -199,11 +204,13 @@ describe('The lib module', function() {
                     }
                 ];
 
-                let test1 = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
+                let test1 = sts.getExamples(pathMock, parametersStub, methodStub, codeStub, examplesMock);
                 expect(test1).to.eqls(expected);
+                expect(addUrlParametersStub).to.have.been.calledWithExactly(parametersStub, test1[0].request);
 
-                let test2 = sts.getExamples(pathMock, methodStub, codeStub, undefined);
+                let test2 = sts.getExamples(pathMock, parametersStub, methodStub, codeStub, undefined);
                 expect(test2).to.eqls(expected);
+                expect(addUrlParametersStub).to.have.been.calledWithExactly(parametersStub, test2[0].request);
             });
 
             it('should get samples', function () {
@@ -221,7 +228,7 @@ describe('The lib module', function() {
                     }
                 ];
 
-                let test = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
+                let test = sts.getExamples(pathMock, parametersStub, methodStub, codeStub, examplesMock);
                 expect(test).to.eqls([
                     {
                         description: 'test1',
@@ -247,12 +254,48 @@ describe('The lib module', function() {
                         }
                     }
                 ]);
+                expect(addUrlParametersStub).to.have.been.calledWithExactly(parametersStub, test[0].request);
+                expect(addUrlParametersStub).to.have.been.calledWithExactly(parametersStub, test[1].request);
+            });
+        });
+
+        describe('substitute parameters in url', function () {
+            it ('should do nothing', function () {
+                sts.addUrlParameters(null, {parameters: {}});
+                sts.addUrlParameters([], {});
+                sts.addUrlParameters([{in: 'fake'}], {parameters: {}});
+                sts.addUrlParameters([{in: 'path', name: 'fake'}], {parameters: {}});
+            });
+
+            it ('should substitute', function () {
+                let parametersMock = [
+                    {
+                        in: 'path',
+                        name: 'param1'
+                    },
+                    {
+                        in: 'path',
+                        name: 'param2'
+                    }
+                ];
+                let request = {
+                    uri: 'http://localhost/foo/{param1}/{param2}',
+                    parameters: {
+                        param1: 'bar',
+                        param2: 'baz'
+                    }
+                };
+
+                sts.addUrlParameters(parametersMock, request);
+
+                expect(request.uri).to.eql('http://localhost/foo/bar/baz');
             });
         });
 
         it('should define test', function () {
             let suitMock = new mochaStub.Suite(null);
             let pathStub = sandbox.stub();
+            let parametersStub = sandbox.stub();
             let methodStub = sandbox.stub();
             let codeMock = '323';
             let examplesStub = sandbox.stub();
@@ -278,9 +321,10 @@ describe('The lib module', function() {
             ];
             let getExamplesStub = sandbox.stub(sts, 'getExamples').returns(examplesMock);
 
-            sts.test(suitMock, pathStub, methodStub, codeMock, examplesStub);
+            sts.test(suitMock, pathStub, parametersStub, methodStub, codeMock, examplesStub);
 
-            expect(getExamplesStub).to.have.been.calledWithExactly(pathStub, methodStub, 323, examplesStub);
+            expect(getExamplesStub).to.have.been.calledWithExactly(
+                pathStub, parametersStub, methodStub, 323, examplesStub);
             expect(suitMock.suits.length).to.equals(2);
             expect(suitMock.suits[0]['name']).to.eql('GET 200: test 1');
             expect(suitMock.suits[0]['test']).to.be.a.function;

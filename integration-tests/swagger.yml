@@ -61,3 +61,24 @@ paths:
                   auth_token: 'abc'
         '401':
           description: Unauthorized
+  '/auth_token/{token}':
+    delete:
+      description: Delete token
+      parameters:
+        - description: Token
+          in: path
+          name: token
+          required: true
+          type: string
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: Test auth token deletion ok
+              request:
+                headers:
+                  Authorization: Bearer abc
+                parameters:
+                  token: xyz
+        '401':
+          description: Unauthorized
