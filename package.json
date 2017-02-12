@@ -31,19 +31,19 @@
     "test-integration": "NODE_ENV=test node './integration-tests/index.spec.js'"
   },
   "dependencies": {
-    "commander": "=2.9.0",
-    "js-yaml": "=3.7.0",
-    "mocha": "=3.2.0",
-    "chai": "=3.5.0",
-    "sinon": "=1.17.7",
-    "sinon-chai": "=2.8.0",
-    "preq": "=0.5.2"
+    "commander": "2.x.x",
+    "js-yaml": "3.x.x",
+    "mocha": "3.x.x",
+    "chai": "3.x.x",
+    "sinon": "1.x.x",
+    "sinon-chai": "2.x.x",
+    "preq": "0.x.x"
   },
   "devDependencies": {
-    "proxyquire": "=1.7.11",
-    "istanbul": "=0.4.5",
-    "nyc": "=10.1.2",
-    "swagger-server": "=0.0.9"
+    "proxyquire": "1.x.x",
+    "istanbul": "0.x.x",
+    "nyc": "10.x.x",
+    "swagger-server": "0.x.x"
   },
   "repository": {
     "type": "git",

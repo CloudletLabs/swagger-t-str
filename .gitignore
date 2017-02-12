@@ -28,6 +28,7 @@ build/Release
 
 # Dependency directories
 node_modules
+npm-shrinkwrap.json
 jspm_packages
 
 # Optional npm cache directory
