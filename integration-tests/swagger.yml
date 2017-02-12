@@ -11,6 +11,18 @@ consumes:
 produces:
   - application/json
 
+definitions:
+  infoo:
+    properties:
+      version:
+        type: string
+    required:
+      - version
+    type: object
+    example:
+      application/json:
+        version: 1.1
+
 paths:
   /status:
     get:
@@ -26,11 +38,26 @@ paths:
       responses:
         '200':
           description: OK
+          schema:
+            $ref: '#/definitions/infoo'
+          x-amples:
+            - description: Test info body
+              response:
+                body:
+                  version: '1.1'
   /auth_token:
     post:
       description: Get auth token for username+password pair
       responses:
         '200':
           description: OK
+          x-amples:
+            - description: Test auth token ok
+              request:
+                headers:
+                  Authorization: qwe
+              response:
+                body:
+                  auth_token: 'abc'
         '401':
           description: Unauthorized

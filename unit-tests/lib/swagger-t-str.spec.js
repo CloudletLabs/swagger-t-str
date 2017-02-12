@@ -242,7 +242,9 @@ describe('The lib module', function() {
                         method: 'get'
                     },
                     response: {
-                        status: 200
+                        status: 200,
+                        headers: {},
+                        body: {}
                     }
                 },
                 {
@@ -258,7 +260,13 @@ describe('The lib module', function() {
             let suitStub = sandbox.stub();
             suitStub.addTest = sandbox.stub();
             let responseStub = sandbox.stub();
-            preqStub.then = sandbox.stub().yields(responseStub);
+            responseStub.headers = sandbox.stub();
+            responseStub.body = sandbox.stub();
+            let errorStub = sandbox.stub();
+            errorStub.message = sandbox.stub();
+            preqStub.then = sandbox.stub();
+            preqStub.then.onFirstCall().yields(responseStub);
+            preqStub.then.onSecondCall().callsArgWith(1, errorStub);
 
             let sts = new STS(programStub);
             sts.test(suitStub, testMock);
@@ -270,13 +278,16 @@ describe('The lib module', function() {
             expect(suitStub.addTest.args[1][0].test).to.be.function;
 
             suitStub.addTest.args[0][0].test();
-            suitStub.addTest.args[1][0].test();
-
             expect(preqStub.get).to.have.been.calledWithExactly(testMock[0].request);
-            expect(preqStub.post).to.have.been.calledWithExactly(testMock[1].request);
-            expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub).callCount(2);
             expect(chaiStub.eql).to.have.been.calledWithExactly(testMock[0].response);
+            expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
+
+            suitStub.addTest.args[1][0].test();
+            expect(preqStub.post).to.have.been.calledWithExactly(testMock[1].request);
             expect(chaiStub.eql).to.have.been.calledWithExactly(testMock[1].response);
+            expect(errorStub.headers).to.not.exist;
+            expect(errorStub.body).to.not.exist;
+            expect(errorStub.message).to.not.exist;
         });
     });
 
