@@ -29,6 +29,10 @@ For each request you can add a list of `x-amples`,
 If no `x-amples` provided,
  endpoint will be tested against given HTTP method with empty request object and only response code will be validated.
 
+Actual response will be compared to the sample provided in `x-amples`
+ using [chai-subset](https://www.npmjs.com/package/chai-subset).
+That means if server returns some extra-fields they are silently ignored.
+
 ```yaml
 paths:
   /status:

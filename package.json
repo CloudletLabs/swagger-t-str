@@ -35,6 +35,7 @@
     "js-yaml": "3.x.x",
     "mocha": "3.x.x",
     "chai": "3.x.x",
+    "chai-subset": "1.x.x",
     "sinon": "1.x.x",
     "sinon-chai": "2.x.x",
     "preq": "0.x.x"
