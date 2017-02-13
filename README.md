@@ -33,7 +33,19 @@ Actual response will be compared to the sample provided in `x-amples`
  using [chai-subset](https://www.npmjs.com/package/chai-subset).
 That means if server returns some extra-fields they are silently ignored.
 
+In case of current endpoint provided with schema (see `/info` in the example below),
+ response body will be validated against it using [swagger-tools](https://www.npmjs.com/package/swagger-tools).
+
 ```yaml
+definitions:
+  infoo:
+    properties:
+      version:
+        type: string
+    required:
+      - version
+    type: object
+
 paths:
   /status:
     get:
@@ -49,6 +61,8 @@ paths:
       responses:
         '200':
           description: OK
+          schema:
+            $ref: '#/definitions/infoo'
           x-amples:
             - description: should return info object
               response:

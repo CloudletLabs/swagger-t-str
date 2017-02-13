@@ -1,6 +1,7 @@
 ## 1.0.5
 
 - Use chai-subset for comparing response
+- Use swagger-tools for response schema validation
 
 ## 1.0.4
 
