@@ -36,13 +36,14 @@
     "mocha": "3.x.x",
     "chai": "3.x.x",
     "chai-subset": "1.x.x",
-    "sinon": "1.x.x",
-    "sinon-chai": "2.x.x",
     "preq": "0.x.x",
     "swagger-tools": "0.x.x"
   },
   "devDependencies": {
     "proxyquire": "1.x.x",
+    "chai-as-promised": "6.x.x",
+    "sinon": "1.x.x",
+    "sinon-chai": "2.x.x",
     "istanbul": "0.x.x",
     "nyc": "10.x.x",
     "swagger-server": "0.x.x"

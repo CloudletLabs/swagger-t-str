@@ -1,9 +1,11 @@
 'use strict';
 
-let sinon = require('sinon');
 let chai = require('chai');
-let sinonChai = require('sinon-chai');
 let expect = chai.expect;
+let sinon = require('sinon');
+let chaiAsPromised = require("chai-as-promised");
+chai.use(chaiAsPromised);
+let sinonChai = require('sinon-chai');
 chai.use(sinonChai);
 let proxyquire = require('proxyquire');
 
@@ -13,11 +15,8 @@ describe('The lib module', function() {
         fsStub,
         preqStub,
         mochaStub,
-        sinonStub,
         chaiStub,
         chaiSubsetStub,
-        sinonChaiStub,
-        doneStub,
         swaggerToolsStub,
         programStub,
         specStub,
@@ -31,8 +30,6 @@ describe('The lib module', function() {
         fsStub.readFileSync = sandbox.stub().returns(fsStub);
 
         preqStub = sandbox.stub();
-        preqStub.get = sandbox.stub().returns(preqStub);
-        preqStub.post = sandbox.stub().returns(preqStub);
         preqStub.then = sandbox.stub().returns(preqStub);
 
         mochaStub = function Mocha() { };
@@ -52,15 +49,12 @@ describe('The lib module', function() {
             this.test = test;
         };
 
-        sinonStub = sandbox.stub();
         chaiStub = sandbox.stub();
         chaiStub.use = sandbox.stub();
         chaiSubsetStub = sandbox.stub();
-        sinonChaiStub = sandbox.stub();
         chaiStub.expect = sandbox.stub().returns(chaiStub);
         chaiStub.to = chaiStub;
         chaiStub.containSubset = sandbox.stub().returns(chaiStub);
-        doneStub = sandbox.stub();
 
         swaggerToolsStub = sandbox.stub();
         swaggerToolsStub.specs = swaggerToolsStub;
@@ -82,10 +76,8 @@ describe('The lib module', function() {
             'fs': fsStub,
             'preq': preqStub,
             'mocha': mochaStub,
-            'sinon': sinonStub,
             'chai': chaiStub,
             'chai-subset': chaiSubsetStub,
-            'sinon-chai': sinonChaiStub,
             'swagger-tools': swaggerToolsStub
         });
         sts = new STS(programStub);
@@ -97,7 +89,6 @@ describe('The lib module', function() {
 
     it('should construct STS', function () {
         expect(chaiStub.use).to.have.been.calledWithExactly(chaiSubsetStub);
-        expect(chaiStub.use).to.have.been.calledWithExactly(sinonChaiStub);
 
         let sts = new STS(programStub);
         expect(sts.spec).to.equals(specStub);
@@ -499,116 +490,128 @@ describe('The lib module', function() {
 
             let doTestStub = sandbox.stub(sts, 'doTest');
 
-            suitMock.suits[0]['test'](doneStub);
-            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[0], doneStub);
+            suitMock.suits[0]['test']();
+            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[0]);
 
-            suitMock.suits[1]['test'](doneStub);
-            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[1], doneStub);
+            suitMock.suits[1]['test']();
+            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[1]);
         });
-
-        describe('do test', function () {
-            let respMock,
-                schemaStub,
+        
+        describe('testing example', function () {
+            let schemaStub,
                 exampleStub,
-                validateStub,
-                doneStub;
-            
-            beforeEach(function () {
-                respMock = sandbox.stub();
-                schemaStub = sandbox.stub();
-                exampleStub = sandbox.stub();
-                exampleStub.request = sandbox.stub();
-                validateStub = sandbox.stub(sts, 'validate');
-                doneStub = sandbox.stub();
-            });
-
-            it('should test success response', function () {
-                exampleStub.request.method = 'get';
-                preqStub.then.yields(respMock);
-
-                sts.doTest(schemaStub, exampleStub, doneStub);
-
-                expect(validateStub).to.have.been.calledWithExactly(schemaStub, exampleStub, respMock, doneStub);
-            });
-
-            it('should test fail response', function () {
-                exampleStub.request.method = 'post';
-                preqStub.then.callsArgWith(1, respMock);
-
-                sts.doTest(schemaStub, exampleStub, doneStub);
-
-                expect(validateStub).to.have.been.calledWithExactly(schemaStub, exampleStub, respMock, doneStub);
-            });
-        });
-
-        describe('validate', function () {
-            let respMock,
-                schemaStub,
-                exampleStub,
-                doneStub;
+                responseStub;
 
             beforeEach(function () {
-                respMock = sandbox.stub();
                 schemaStub = sandbox.stub();
                 exampleStub = sandbox.stub();
+                responseStub = sandbox.stub();
                 exampleStub.response = sandbox.stub();
-                doneStub = sandbox.stub();
             });
 
-            let commonTest = function () {
-                expect(chaiStub.expect).to.have.been.calledWithExactly(respMock);
-                expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
+            it('should do test', function () {
+                let validatorStub = sandbox.stub(sts, 'getValidator');
+                validatorStub.returns(validatorStub);
+                exampleStub.request = sandbox.stub();
+                exampleStub.request.method = sandbox.stub();
+                preqStub[exampleStub.request.method] = sandbox.stub().returns(preqStub);
+
+                let promise = sts.doTest(schemaStub, exampleStub);
+
+                expect(validatorStub).to.have.been.calledWithExactly(schemaStub, exampleStub);
+                expect(preqStub[exampleStub.request.method]).to.have.been.calledWithExactly(exampleStub.request);
+                expect(preqStub.then).to.have.been.calledWithExactly(validatorStub, validatorStub);
+                expect(promise).to.equals(preqStub);
+            });
+
+            it('should return validator', function () {
+                let validator = sts.getValidator(schemaStub, exampleStub);
+                expect(validator).to.be.a('function');
+
+                let promiseMock = sandbox.stub();
+                let doValidateStub = sandbox.stub(sts, 'doValidate').returns(promiseMock);
+
+                let promise = validator(responseStub);
+
+                expect(doValidateStub).to.have.been.calledWithExactly(schemaStub, exampleStub, responseStub);
+                expect(promise).to.equals(promiseMock);
+            });
+
+            describe('validate', function () {
+                let commonTest = function (promise) {
+                    expect(promise).to.be.undefined;
+                    expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
+                    expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
+                };
+
+                it('should validate with no schema', function () {
+                    commonTest(sts.doValidate(null, exampleStub, responseStub));
+                });
+
+                it('should validate with no $ref', function () {
+                    commonTest(sts.doValidate(schemaStub, exampleStub, responseStub));
+                });
+
+                it('should validate with no body', function () {
+                    schemaStub['$ref'] = sandbox.stub();
+                    commonTest(sts.doValidate(schemaStub, exampleStub, responseStub));
+                });
+
+                it('should validate with schema', function () {
+                    schemaStub['$ref'] = sandbox.stub();
+                    responseStub.body = sandbox.stub();
+                    let promiseStub = sandbox.stub();
+                    let doValidateSwaggerSchemaStub =
+                        sandbox.stub(sts, 'doValidateSwaggerSchema').returns(promiseStub);
+
+                    let promise = sts.doValidate(schemaStub, exampleStub, responseStub);
+
+                    expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
+                    expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
+                    expect(doValidateSwaggerSchemaStub).to.have.been.calledWithExactly(
+                        schemaStub['$ref'], responseStub.body);
+                    expect(promise).to.equals(promiseStub);
+                });
+            });
+        });
+
+        describe('validate swagger schema', function () {
+            let refStub,
+                bodyStub;
+
+            beforeEach(function () {
+                refStub = sandbox.stub();
+                bodyStub = sandbox.stub();
+            });
+
+            let commonTest = function (promise) {
+                expect(promise).to.be.a('promise');
+                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
+                    sts.spec, refStub, bodyStub, sinon.match.func);
             };
 
-            it('should validate response without schema', function () {
-                sts.validate(null, exampleStub, respMock, doneStub);
-                commonTest();
-                expect(doneStub).to.have.been.calledWithExactly();
-            });
-
-            it('should validate response without schema ref', function () {
-                sts.validate(schemaStub, exampleStub, respMock, doneStub);
-                commonTest();
-                expect(doneStub).to.have.been.calledWithExactly();
-            });
-
-            it('should validate response without body', function () {
-                schemaStub['$ref'] = sandbox.stub();
-                sts.validate(schemaStub, exampleStub, respMock, doneStub);
-                commonTest();
-                expect(doneStub).to.have.been.calledWithExactly();
-            });
-
-            it('should validate response with body', function () {
-                schemaStub['$ref'] = sandbox.stub();
-                respMock.body = sandbox.stub();
+            it('should validate', function () {
                 swaggerToolsStub.validateModel.callsArg(3);
 
-                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+                let promise = sts.doValidateSwaggerSchema(refStub, bodyStub);
 
-                commonTest();
-                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
-                    sts.spec, schemaStub['$ref'], respMock.body, sinon.match.func);
-                expect(doneStub).to.have.been.calledWithExactly();
+                commonTest(promise);
+
+                return expect(promise).to.be.fulfilled;
             });
 
-            it('should fail validating response with body', function () {
-                schemaStub['$ref'] = sandbox.stub();
-                respMock.body = sandbox.stub();
-                let errorStub = sandbox.stub();
-                swaggerToolsStub.validateModel.callsArgWith(3, errorStub);
+            it('should fail', function () {
+                let errorMock = new Error('test error');
+                swaggerToolsStub.validateModel.callsArgWith(3, errorMock);
 
-                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+                let promise = sts.doValidateSwaggerSchema(refStub, bodyStub);
 
-                commonTest();
-                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
-                    sts.spec, schemaStub['$ref'], respMock.body, sinon.match.func);
-                expect(doneStub).to.have.been.calledWithExactly(errorStub);
+                commonTest(promise);
+
+                return expect(promise).to.be.rejectedWith(errorMock);
             });
 
-            it('should fail validating response schema', function () {
-                schemaStub['$ref'] = sandbox.stub();
-                respMock.body = sandbox.stub();
+            it('should fail validating body against schema', function () {
                 let resultMock = {
                     errors: [
                         {
@@ -623,16 +626,13 @@ describe('The lib module', function() {
                 };
                 swaggerToolsStub.validateModel.callsArgWith(3, null, resultMock);
 
-                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+                let promise = sts.doValidateSwaggerSchema(refStub, bodyStub);
 
-                commonTest();
-                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
-                    sts.spec, schemaStub['$ref'], respMock.body, sinon.match.func);
-                expect(doneStub).to.have.been.calledWithExactly(new Error(
-                    'Error: Validation failed:\n' +
-                        '#/1/2: 3\n' +
-                        '#/4/5: 6'
-                ));
+                commonTest(promise);
+
+                return expect(promise).to.be.rejectedWith(Error, 'Validation failed:\n' +
+                    '#/1/2: 3\n' +
+                    '#/4/5: 6');
             });
         });
     });

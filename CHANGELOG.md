@@ -1,3 +1,7 @@
+## 1.0.8
+
+- Fix schema validation failures not being caught
+
 ## 1.0.7
 
 - Fix issue having parameter both substituted into URL and still be a part of request
