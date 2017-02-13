@@ -345,6 +345,8 @@ describe('The lib module', function() {
                 sts.addUrlParameters(pathMock, methodStub, example);
 
                 expect(example.request.uri).to.eql('http://localhost/foo/bar/baz');
+                expect(example.request.parameters).not.to.have.property('param1');
+                expect(example.request.parameters).not.to.have.property('param2');
             });
         });
         

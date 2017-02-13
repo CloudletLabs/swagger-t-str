@@ -86,7 +86,7 @@ Output:
 
 # Auth
 
-There is only 'Basic' and headers-based auth types currently supported.
+There is only `Basic` and headers-based auth types currently supported.
 
 The idea is to add `x-ample` to your `securityDefinitions`,
  so that it will be possible to find it automatically based on method `security` definition.
