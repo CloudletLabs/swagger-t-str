@@ -15,6 +15,7 @@ describe('The lib module', function() {
         mochaStub,
         sinonStub,
         chaiStub,
+        chaiSubsetStub,
         sinonChaiStub,
         programStub,
         specStub,
@@ -52,10 +53,11 @@ describe('The lib module', function() {
         sinonStub = sandbox.stub();
         chaiStub = sandbox.stub();
         chaiStub.use = sandbox.stub();
+        chaiSubsetStub = sandbox.stub();
         sinonChaiStub = sandbox.stub();
         chaiStub.expect = sandbox.stub().returns(chaiStub);
         chaiStub.to = chaiStub;
-        chaiStub.eql = sandbox.stub().returns(chaiStub);
+        chaiStub.containSubset = sandbox.stub().returns(chaiStub);
 
         programStub = sandbox.stub();
         programStub.protocol = 'test_protocol';
@@ -74,6 +76,7 @@ describe('The lib module', function() {
             'mocha': mochaStub,
             'sinon': sinonStub,
             'chai': chaiStub,
+            'chai-subset': chaiSubsetStub,
             'sinon-chai': sinonChaiStub
         });
         sts = new STS(programStub);
@@ -84,6 +87,7 @@ describe('The lib module', function() {
     });
 
     it('should construct STS', function () {
+        expect(chaiStub.use).to.have.been.calledWithExactly(chaiSubsetStub);
         expect(chaiStub.use).to.have.been.calledWithExactly(sinonChaiStub);
 
         let sts = new STS(programStub);
@@ -488,111 +492,39 @@ describe('The lib module', function() {
         });
 
         describe('do test', function () {
-            let validateStub;
+            let respMock,
+                exampleMock;
             
             beforeEach(function () {
-                validateStub = sandbox.stub(sts, 'validate');
+                respMock = sandbox.stub();
+                exampleMock = sandbox.stub();
+                exampleMock.request = sandbox.stub();
+                exampleMock.response = sandbox.stub();
             });
 
+            let commonTest = function () {
+                expect(chaiStub.expect).to.have.been.calledWithExactly(respMock);
+                expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleMock.response);
+            };
+
             it('should test success response', function () {
-                let exampleMock = {
-                    request: {
-                        method: 'get'
-                    }
-                };
-                let responseStub = sandbox.stub();
-                preqStub.then.yields(responseStub);
+                exampleMock.request.method = 'get';
+                preqStub.then.yields(respMock);
 
                 sts.doTest(exampleMock);
 
                 expect(preqStub.get).to.have.been.calledWithExactly(exampleMock.request);
-                expect(validateStub).to.have.been.calledWithExactly(exampleMock, responseStub);
-            });
-            
-            describe('error', function () {
-                let exampleMock,
-                    errorMock;
-                
-                beforeEach(function () {
-                    exampleMock = {
-                        request: {
-                            method: 'post'
-                        },
-                        response: {}
-                    };
-                    errorMock = {
-                        name: sandbox.stub(),
-                        message: sandbox.stub()
-                    };
-                    preqStub.then.callsArgWith(1, errorMock);
-                });
-
-                let commotTest = function () {
-                    expect(preqStub.post).to.have.been.calledWithExactly(exampleMock.request);
-                    expect(validateStub).to.have.been.calledWithExactly(exampleMock, errorMock);
-                };
-
-                it('should test error response', function () {
-                    exampleMock.response = {
-                        name: sandbox.stub(),
-                        message: sandbox.stub()
-                    };
-
-                    sts.doTest(exampleMock);
-
-                    commotTest();
-                    expect(errorMock).to.have.property('name');
-                    expect(errorMock).to.have.property('message');
-                });
-
-                it('should test error response removing field', function () {
-                    sts.doTest(exampleMock);
-
-                    commotTest();
-                    expect(errorMock).not.to.have.property('name');
-                    expect(errorMock).not.to.have.property('message');
-                });
-            });
-        });
-        
-        describe('validate', function () {
-            let exampleMock,
-                respMock;
-
-            beforeEach(function () {
-                exampleMock = {
-                    response: {}
-                };
-                respMock = {
-                    headers: sandbox.stub(),
-                    body: sandbox.stub()
-                }
+                commonTest();
             });
 
-            let commotTest = function () {
-                expect(chaiStub.expect).to.have.been.calledWithExactly(respMock);
-                expect(chaiStub.eql).to.have.been.calledWithExactly(exampleMock.response);
-            };
+            it('should test fail response', function () {
+                exampleMock.request.method = 'post';
+                preqStub.then.callsArgWith(1, respMock);
 
-            it('should validate', function () {
-                exampleMock.response = {
-                    headers: sandbox.stub(),
-                    body: sandbox.stub()
-                };
+                sts.doTest(exampleMock);
 
-                sts.validate(exampleMock, respMock);
-
-                commotTest();
-                expect(respMock).to.have.property('headers');
-                expect(respMock).to.have.property('body');
-            });
-
-            it('should validate removing fields', function () {
-                sts.validate(exampleMock, respMock);
-
-                commotTest();
-                expect(respMock).not.to.have.property('headers');
-                expect(respMock).not.to.have.property('body');
+                expect(preqStub.post).to.have.been.calledWithExactly(exampleMock.request);
+                commonTest();
             });
         });
     });
