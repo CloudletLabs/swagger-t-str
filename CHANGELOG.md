@@ -1,4 +1,4 @@
-## 1.0.5
+## 1.0.6
 
 - Use chai-subset for comparing response
 - Use swagger-tools for response schema validation
