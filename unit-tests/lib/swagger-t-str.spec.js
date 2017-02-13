@@ -17,6 +17,8 @@ describe('The lib module', function() {
         chaiStub,
         chaiSubsetStub,
         sinonChaiStub,
+        doneStub,
+        swaggerToolsStub,
         programStub,
         specStub,
         STS,
@@ -58,6 +60,12 @@ describe('The lib module', function() {
         chaiStub.expect = sandbox.stub().returns(chaiStub);
         chaiStub.to = chaiStub;
         chaiStub.containSubset = sandbox.stub().returns(chaiStub);
+        doneStub = sandbox.stub();
+
+        swaggerToolsStub = sandbox.stub();
+        swaggerToolsStub.specs = swaggerToolsStub;
+        swaggerToolsStub.v2 = swaggerToolsStub;
+        swaggerToolsStub.validateModel = sandbox.stub();
 
         programStub = sandbox.stub();
         programStub.protocol = 'test_protocol';
@@ -77,7 +85,8 @@ describe('The lib module', function() {
             'sinon': sinonStub,
             'chai': chaiStub,
             'chai-subset': chaiSubsetStub,
-            'sinon-chai': sinonChaiStub
+            'sinon-chai': sinonChaiStub,
+            'swagger-tools': swaggerToolsStub
         });
         sts = new STS(programStub);
     });
@@ -479,52 +488,149 @@ describe('The lib module', function() {
             expect(suitMock.suits[1]['name']).to.eql('POST 300: test 2');
             expect(suitMock.suits[1]['test']).to.be.a('function');
 
+            sts.spec.paths = {};
+            sts.spec.paths[pathStub] = {};
+            sts.spec.paths[pathStub][methodStub] = {};
+            sts.spec.paths[pathStub][methodStub].responses = {};
+            sts.spec.paths[pathStub][methodStub].responses[codeMock] = {};
+            let schemaStub = sts.spec.paths[pathStub][methodStub].responses[codeMock].schema = sandbox.stub();
+
             let doTestStub = sandbox.stub(sts, 'doTest');
-            doTestStub.returns(doTestStub);
 
-            let result0 = suitMock.suits[0]['test']();
-            expect(doTestStub).to.have.been.calledWithExactly(examplesMock[0]);
-            expect(result0).to.eql(doTestStub);
+            suitMock.suits[0]['test'](doneStub);
+            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[0], doneStub);
 
-            let result1 = suitMock.suits[1]['test']();
-            expect(doTestStub).to.have.been.calledWithExactly(examplesMock[1]);
-            expect(result1).to.eql(doTestStub);
+            suitMock.suits[1]['test'](doneStub);
+            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[1], doneStub);
         });
 
         describe('do test', function () {
             let respMock,
-                exampleMock;
+                schemaStub,
+                exampleStub,
+                validateStub,
+                doneStub;
             
             beforeEach(function () {
                 respMock = sandbox.stub();
-                exampleMock = sandbox.stub();
-                exampleMock.request = sandbox.stub();
-                exampleMock.response = sandbox.stub();
+                schemaStub = sandbox.stub();
+                exampleStub = sandbox.stub();
+                exampleStub.request = sandbox.stub();
+                validateStub = sandbox.stub(sts, 'validate');
+                doneStub = sandbox.stub();
+            });
+
+            it('should test success response', function () {
+                exampleStub.request.method = 'get';
+                preqStub.then.yields(respMock);
+
+                sts.doTest(schemaStub, exampleStub, doneStub);
+
+                expect(validateStub).to.have.been.calledWithExactly(schemaStub, exampleStub, respMock, doneStub);
+            });
+
+            it('should test fail response', function () {
+                exampleStub.request.method = 'post';
+                preqStub.then.callsArgWith(1, respMock);
+
+                sts.doTest(schemaStub, exampleStub, doneStub);
+
+                expect(validateStub).to.have.been.calledWithExactly(schemaStub, exampleStub, respMock, doneStub);
+            });
+        });
+
+        describe('validate', function () {
+            let respMock,
+                schemaStub,
+                exampleStub,
+                doneStub;
+
+            beforeEach(function () {
+                respMock = sandbox.stub();
+                schemaStub = sandbox.stub();
+                exampleStub = sandbox.stub();
+                exampleStub.response = sandbox.stub();
+                doneStub = sandbox.stub();
             });
 
             let commonTest = function () {
                 expect(chaiStub.expect).to.have.been.calledWithExactly(respMock);
-                expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleMock.response);
+                expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
             };
 
-            it('should test success response', function () {
-                exampleMock.request.method = 'get';
-                preqStub.then.yields(respMock);
-
-                sts.doTest(exampleMock);
-
-                expect(preqStub.get).to.have.been.calledWithExactly(exampleMock.request);
+            it('should validate response without schema', function () {
+                sts.validate(null, exampleStub, respMock, doneStub);
                 commonTest();
+                expect(doneStub).to.have.been.calledWithExactly();
             });
 
-            it('should test fail response', function () {
-                exampleMock.request.method = 'post';
-                preqStub.then.callsArgWith(1, respMock);
-
-                sts.doTest(exampleMock);
-
-                expect(preqStub.post).to.have.been.calledWithExactly(exampleMock.request);
+            it('should validate response without schema ref', function () {
+                sts.validate(schemaStub, exampleStub, respMock, doneStub);
                 commonTest();
+                expect(doneStub).to.have.been.calledWithExactly();
+            });
+
+            it('should validate response without body', function () {
+                schemaStub['$ref'] = sandbox.stub();
+                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+                commonTest();
+                expect(doneStub).to.have.been.calledWithExactly();
+            });
+
+            it('should validate response with body', function () {
+                schemaStub['$ref'] = sandbox.stub();
+                respMock.body = sandbox.stub();
+                swaggerToolsStub.validateModel.callsArg(3);
+
+                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+
+                commonTest();
+                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
+                    sts.spec, schemaStub['$ref'], respMock.body, sinon.match.func);
+                expect(doneStub).to.have.been.calledWithExactly();
+            });
+
+            it('should fail validating response with body', function () {
+                schemaStub['$ref'] = sandbox.stub();
+                respMock.body = sandbox.stub();
+                let errorStub = sandbox.stub();
+                swaggerToolsStub.validateModel.callsArgWith(3, errorStub);
+
+                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+
+                commonTest();
+                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
+                    sts.spec, schemaStub['$ref'], respMock.body, sinon.match.func);
+                expect(doneStub).to.have.been.calledWithExactly(errorStub);
+            });
+
+            it('should fail validating response schema', function () {
+                schemaStub['$ref'] = sandbox.stub();
+                respMock.body = sandbox.stub();
+                let resultMock = {
+                    errors: [
+                        {
+                            path: ['1', '2'],
+                            message: '3'
+                        },
+                        {
+                            path: ['4', '5'],
+                            message: '6'
+                        }
+                    ]
+                };
+                swaggerToolsStub.validateModel.callsArgWith(3, null, resultMock);
+
+                sts.validate(schemaStub, exampleStub, respMock, doneStub);
+
+                commonTest();
+                expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
+                    sts.spec, schemaStub['$ref'], respMock.body, sinon.match.func);
+                expect(doneStub).to.have.been.calledWithExactly(new Error(
+                    'Error: Validation failed:\n' +
+                        '#/1/2: 3\n' +
+                        '#/4/5: 6'
+                ));
             });
         });
     });
