@@ -1,3 +1,7 @@
+## 1.0.7
+
+- Fix issue having parameter both substituted into URL and still be a part of request
+
 ## 1.0.6
 
 - Use chai-subset for comparing response
