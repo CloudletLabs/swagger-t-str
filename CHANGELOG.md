@@ -1,3 +1,7 @@
+## 1.0.9
+
+- Fix a bug causing swagger-tools to fail validating schema because of circular structures in JSON
+
 ## 1.0.8
 
 - Fix schema validation failures not being caught

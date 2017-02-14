@@ -30,6 +30,13 @@ definitions:
     required:
       - version
     type: object
+  authToken:
+    properties:
+      auth_token:
+        type: string
+    required:
+      - auth_token
+    type: object
 
 paths:
   /status:
@@ -61,6 +68,8 @@ paths:
       responses:
         '200':
           description: OK
+          schema:
+            $ref: '#/definitions/authToken'
           x-amples:
             - description: should return auth token
               auth: true

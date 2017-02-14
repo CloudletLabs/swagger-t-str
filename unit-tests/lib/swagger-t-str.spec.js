@@ -244,18 +244,19 @@ describe('The lib module', function() {
 
         it('should get samples', function () {
             let pathMock = '/test_path';
-            let methodStub = sandbox.stub();
-            let codeStub = sandbox.stub();
+            let methodMock = 'methodMock';
+            let codeMock = 'codeMock';
             sts.spec = sandbox.stub();
             sts.spec.paths = sandbox.stub();
             sts.spec.paths[pathMock] = sandbox.stub();
-            sts.spec.paths[pathMock][methodStub] = sandbox.stub();
-            let specMethodParametersStub = sts.spec.paths[pathMock][methodStub].parameters = sandbox.stub();
-            let specMethodSecurityStub = sts.spec.paths[pathMock][methodStub].security = sandbox.stub();
-            sts.spec.paths[pathMock][methodStub].responses = sandbox.stub();
-            sts.spec.paths[pathMock][methodStub].responses[codeStub] = sandbox.stub();
-            let specResponseSchemaStub =
-                sts.spec.paths[pathMock][methodStub].responses[codeStub].schema = sandbox.stub();
+            sts.spec.paths[pathMock][methodMock] = sandbox.stub();
+            let specMethodParametersMock =
+                sts.spec.paths[pathMock][methodMock].parameters = 'specMethodParametersMock';
+            let specMethodSecurityMock = sts.spec.paths[pathMock][methodMock].security = 'specMethodSecurityMock';
+            sts.spec.paths[pathMock][methodMock].responses = sandbox.stub();
+            sts.spec.paths[pathMock][methodMock].responses[codeMock] = sandbox.stub();
+            let specResponseSchemaMock =
+                sts.spec.paths[pathMock][methodMock].responses[codeMock].schema = 'specResponseSchemaMock';
             let examplesMock = [
                 { description: 'test1' },
                 {
@@ -271,37 +272,37 @@ describe('The lib module', function() {
                 }
             ];
 
-            let test = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
+            let test = sts.getExamples(pathMock, methodMock, codeMock, examplesMock);
 
             expect(test).to.eqls([
                 {
                     description: 'test1',
-                    specMethodParameters: specMethodParametersStub,
-                    specMethodSecurity: specMethodSecurityStub,
-                    specResponseSchema: specResponseSchemaStub,
+                    specMethodParameters: specMethodParametersMock,
+                    specMethodSecurity: specMethodSecurityMock,
+                    specResponseSchema: specResponseSchemaMock,
                     request: {
-                        method: methodStub,
+                        method: methodMock,
                         uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
                         headers: {}
                     },
                     response: {
-                        status: codeStub
+                        status: codeMock
                     }
                 },
                 {
                     description: 'test2',
-                    specMethodParameters: specMethodParametersStub,
-                    specMethodSecurity: specMethodSecurityStub,
-                    specResponseSchema: specResponseSchemaStub,
+                    specMethodParameters: specMethodParametersMock,
+                    specMethodSecurity: specMethodSecurityMock,
+                    specResponseSchema: specResponseSchemaMock,
                     field1: 'value1',
                     request: {
-                        method: methodStub,
+                        method: methodMock,
                         uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
                         field2: 'value2',
                         headers: {}
                     },
                     response: {
-                        status: codeStub,
+                        status: codeMock,
                         field3: 'value3'
                     }
                 }
