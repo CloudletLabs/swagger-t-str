@@ -21,7 +21,6 @@ securityDefinitions:
     description: Token auth
     in: header
     name: Authorization
-    x-ample: Bearer abc
 
 definitions:
   infoo:
@@ -65,6 +64,9 @@ paths:
           x-amples:
             - description: should return auth token
               auth: true
+              authProviderFor:
+                Bearer:
+                  x-ample: 'Bearer ${body.auth_token}'
               response:
                 body:
                   auth_token: 'abc'

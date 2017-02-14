@@ -30,36 +30,14 @@ describe('The lib module', function() {
         fsStub.readFileSync = sandbox.stub().returns(fsStub);
 
         preqStub = sandbox.stub();
-        preqStub.then = sandbox.stub().returns(preqStub);
 
         mochaStub = function Mocha() { };
-        mochaStub.prototype.suite = sandbox.stub();
-        mochaStub.prototype.run = sandbox.stub();
-        mochaStub.Suite = function Suite(name) {
-            this.name = name;
-        };
-        mochaStub.Suite.create = sandbox.stub().returns(mochaStub);
-        mochaStub.Suite.prototype.addSuite = sandbox.stub().returns(mochaStub);
-        mochaStub.Suite.prototype.addTest = function (suit) {
-            if (!this.suits) this.suits = [];
-            this.suits.push(suit);
-        };
-        mochaStub.Test = function Test(name, test) {
-            this.name = name;
-            this.test = test;
-        };
 
         chaiStub = sandbox.stub();
         chaiStub.use = sandbox.stub();
         chaiSubsetStub = sandbox.stub();
-        chaiStub.expect = sandbox.stub().returns(chaiStub);
-        chaiStub.to = chaiStub;
-        chaiStub.containSubset = sandbox.stub().returns(chaiStub);
 
         swaggerToolsStub = sandbox.stub();
-        swaggerToolsStub.specs = swaggerToolsStub;
-        swaggerToolsStub.v2 = swaggerToolsStub;
-        swaggerToolsStub.validateModel = sandbox.stub();
 
         programStub = sandbox.stub();
         programStub.protocol = 'test_protocol';
@@ -87,18 +65,20 @@ describe('The lib module', function() {
         sandbox.restore();
     });
 
-    it('should construct STS', function () {
+    it('should configure chai', function () {
         expect(chaiStub.use).to.have.been.calledWithExactly(chaiSubsetStub);
-
-        let sts = new STS(programStub);
-        expect(sts.spec).to.equals(specStub);
-        expect(sts.uri).to.equals('test_protocol://test_host:test_port/test_base_path');
-        expect(fsStub.readFileSync).to.have.been.calledWithExactly(programStub.spec, 'utf8');
-        expect(yamlStub.safeLoad).to.have.been.calledWithExactly(fsStub);
     });
 
     describe('STS', function () {
+        it('should construct STS', function () {
+            expect(sts.spec).to.equals(specStub);
+            expect(sts.uri).to.equals('test_protocol://test_host:test_port/test_base_path');
+            expect(fsStub.readFileSync).to.have.been.calledWithExactly(programStub.spec, 'utf8');
+            expect(yamlStub.safeLoad).to.have.been.calledWithExactly(fsStub);
+        });
+
         it('should start', function () {
+            mochaStub.prototype.run = sandbox.stub();
             sts.spec = {
                 paths: {
                     '/test1': {
@@ -155,10 +135,25 @@ describe('The lib module', function() {
             expect(mochaStub.prototype.run).to.have.been.calledWithExactly(callbackStub);
         });
 
-        describe('adding suits', function () {
+        describe('adding suits and tests', function () {
             let nameStub;
 
             beforeEach(function () {
+                mochaStub.prototype.suite = sandbox.stub();
+                mochaStub.Suite = function Suite(name) {
+                    this.name = name;
+                };
+                mochaStub.Suite.create = sandbox.stub().returns(mochaStub);
+                mochaStub.Suite.prototype.addSuite = sandbox.stub().returns(mochaStub);
+                mochaStub.Suite.prototype.addTest = function (suit) {
+                    if (!this.suits) this.suits = [];
+                    this.suits.push(suit);
+                };
+                mochaStub.Test = function Test(name, test) {
+                    this.name = name;
+                    this.test = test;
+                };
+
                 nameStub = sandbox.stub();
             });
 
@@ -176,154 +171,202 @@ describe('The lib module', function() {
                 expect(suit.name).to.equals(nameStub);
                 expect(mochaStub.Suite.prototype.addSuite).to.have.been.calledWithExactly(suit);
             });
+
+            it('should add test', function () {
+                let suitMock = new mochaStub.Suite(null);
+                let exampleMock = {
+                    description: '[test desc]',
+                    request: {
+                        method: '[test method]'
+                    },
+                    response: {
+                        status: '[test status]'
+                    }
+                };
+                sts.addTest(suitMock, exampleMock);
+
+                expect(suitMock.suits.length).to.equals(1);
+                expect(suitMock.suits[0]['name']).to.eql('[TEST METHOD] [test status]: [test desc]');
+                expect(suitMock.suits[0]['test']).to.be.a('function');
+
+                let doTestStub = sandbox.stub(sts, 'doTest');
+
+                suitMock.suits[0]['test']();
+                expect(doTestStub).to.have.been.calledWithExactly(exampleMock);
+            });
         });
 
-        describe('get examples', function () {
-            let pathMock,
+        describe('creating tests for examples', function () {
+            let suitMock,
+                pathStub,
                 methodStub,
-                codeStub,
-                addUrlParametersStub,
-                addAuthStub;
-
+                codeMock,
+                getExamplesStub,
+                addTestStub;
+            
             beforeEach(function () {
-                pathMock = '/test_path';
+                suitMock = sandbox.stub();
+                pathStub = sandbox.stub();
                 methodStub = sandbox.stub();
-                codeStub = sandbox.stub();
-                addUrlParametersStub = sandbox.stub(sts, 'addUrlParameters');
-                addAuthStub = sandbox.stub(sts, 'addAuth');
+                codeMock = '323';
+                getExamplesStub = sandbox.stub(sts, 'getExamples').returnsArg(3);
+                addTestStub = sandbox.stub(sts, 'addTest');
             });
 
-            it('should get for empty', function () {
-                let expected = [
-                    {
-                        description: 'should return HTTP status code',
-                        request: {
-                            method: methodStub,
-                            uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
-                            headers: {}
-                        },
-                        response: {
-                            status: codeStub
-                        }
-                    }
-                ];
+            it('should create for given examples', function () {
+                let examplesMock = ['example 1', 'example 2'];
 
-                let test1 = sts.getExamples(pathMock, methodStub, codeStub, []);
-                expect(test1).to.eqls(expected);
-                expect(addUrlParametersStub).to.have.been.calledWithExactly(
-                    pathMock, methodStub, sinon.match.object);
-                expect(addAuthStub).to.have.been.calledWithExactly(
-                    pathMock, methodStub, codeStub, sinon.match.object);
+                sts.test(suitMock, pathStub, methodStub, codeMock, examplesMock);
 
-                let test2 = sts.getExamples(pathMock, methodStub, codeStub, undefined);
-                expect(test2).to.eqls(expected);
-                expect(addUrlParametersStub).to.have.been.calledWithExactly(
-                    pathMock, methodStub, sinon.match.object);
-                expect(addAuthStub).to.have.been.calledWithExactly(
-                    pathMock, methodStub, codeStub, sinon.match.object);
+                expect(getExamplesStub).to.have.been.calledWithExactly(pathStub, methodStub, 323, examplesMock);
+                expect(addTestStub).to.have.been.calledWithExactly(suitMock, 'example 1');
+                expect(addTestStub).to.have.been.calledWithExactly(suitMock, 'example 2');
             });
+            
+            describe('empty examples', function () {
+                let commonTests = function () {
+                    let expectedExamples = [{ description: 'should return HTTP status code' }];
+                    expect(getExamplesStub).to.have.been.calledWithExactly(pathStub, methodStub, 323, expectedExamples);
+                    expect(addTestStub).to.have.been.calledWithExactly(suitMock, expectedExamples[0]);
+                };
 
-            it('should get samples', function () {
-                let examplesMock = [
-                    { description: 'test1' },
-                    {
-                        description: 'test2',
-                        field1: 'value1',
-                        request: {
-                            field2: 'value2',
-                            headers: {}
-                        },
-                        response: {
-                            field3: 'value3'
-                        }
-                    }
-                ];
+                it('should create for empty examples list', function () {
+                    sts.test(suitMock, pathStub, methodStub, codeMock, []);
+                    commonTests();
+                });
 
-                let test = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
-                expect(test).to.eqls([
-                    {
-                        description: 'test1',
-                        request: {
-                            method: methodStub,
-                            uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
-                            headers: {}
-                        },
-                        response: {
-                            status: codeStub
-                        }
+                it('should create for null examples list', function () {
+                    sts.test(suitMock, pathStub, methodStub, codeMock, null);
+                    commonTests();
+                });
+            });
+        });
+
+        it('should get samples', function () {
+            let pathMock = '/test_path';
+            let methodStub = sandbox.stub();
+            let codeStub = sandbox.stub();
+            sts.spec = sandbox.stub();
+            sts.spec.paths = sandbox.stub();
+            sts.spec.paths[pathMock] = sandbox.stub();
+            sts.spec.paths[pathMock][methodStub] = sandbox.stub();
+            let specMethodParametersStub = sts.spec.paths[pathMock][methodStub].parameters = sandbox.stub();
+            let specMethodSecurityStub = sts.spec.paths[pathMock][methodStub].security = sandbox.stub();
+            sts.spec.paths[pathMock][methodStub].responses = sandbox.stub();
+            sts.spec.paths[pathMock][methodStub].responses[codeStub] = sandbox.stub();
+            let specResponseSchemaStub =
+                sts.spec.paths[pathMock][methodStub].responses[codeStub].schema = sandbox.stub();
+            let examplesMock = [
+                { description: 'test1' },
+                {
+                    description: 'test2',
+                    field1: 'value1',
+                    request: {
+                        field2: 'value2',
+                        headers: {}
                     },
-                    {
-                        description: 'test2',
-                        field1: 'value1',
-                        request: {
-                            method: methodStub,
-                            uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
-                            field2: 'value2',
-                            headers: {}
-                        },
-                        response: {
-                            status: codeStub,
-                            field3: 'value3'
-                        }
+                    response: {
+                        field3: 'value3'
                     }
-                ]);
-                expect(addUrlParametersStub).to.have.been.calledWithExactly(pathMock, methodStub, test[0]);
-                expect(addAuthStub).to.have.been.calledWithExactly(pathMock, methodStub, codeStub, test[0]);
-                expect(addUrlParametersStub).to.have.been.calledWithExactly(pathMock, methodStub, test[1]);
-                expect(addAuthStub).to.have.been.calledWithExactly(pathMock, methodStub, codeStub, test[1]);
-            });
+                }
+            ];
+
+            let test = sts.getExamples(pathMock, methodStub, codeStub, examplesMock);
+
+            expect(test).to.eqls([
+                {
+                    description: 'test1',
+                    specMethodParameters: specMethodParametersStub,
+                    specMethodSecurity: specMethodSecurityStub,
+                    specResponseSchema: specResponseSchemaStub,
+                    request: {
+                        method: methodStub,
+                        uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
+                        headers: {}
+                    },
+                    response: {
+                        status: codeStub
+                    }
+                },
+                {
+                    description: 'test2',
+                    specMethodParameters: specMethodParametersStub,
+                    specMethodSecurity: specMethodSecurityStub,
+                    specResponseSchema: specResponseSchemaStub,
+                    field1: 'value1',
+                    request: {
+                        method: methodStub,
+                        uri: 'test_protocol://test_host:test_port/test_base_path/test_path',
+                        field2: 'value2',
+                        headers: {}
+                    },
+                    response: {
+                        status: codeStub,
+                        field3: 'value3'
+                    }
+                }
+            ]);
+        });
+
+        it('should test given example', function () {
+            let exampleStub = sandbox.stub();
+            exampleStub.request = sandbox.stub();
+            exampleStub.request.method = sandbox.stub();
+            let substituteUrlParametersStub = sandbox.stub(sts, 'substituteUrlParameters');
+            let addAuthStub = sandbox.stub(sts, 'addAuth');
+            let validatorStub = sandbox.stub(sts, 'getValidator');
+            validatorStub.returns(validatorStub);
+            preqStub[exampleStub.request.method] = sandbox.stub().returns(preqStub);
+            preqStub.then = sandbox.stub().returns(preqStub);
+
+            sts.doTest(exampleStub);
+
+            expect(substituteUrlParametersStub).to.have.been.calledWithExactly(exampleStub);
+            expect(addAuthStub).to.have.been.calledWithExactly(exampleStub);
+            expect(validatorStub).to.have.been.calledWithExactly(exampleStub);
+            expect(preqStub[exampleStub.request.method]).to.have.been.calledWithExactly(exampleStub.request);
+            expect(preqStub.then).to.have.been.calledWithExactly(validatorStub, validatorStub);
         });
 
         describe('substitute parameters in url', function () {
-            let pathMock,
-                methodStub;
-
-            beforeEach(function () {
-                pathMock = sandbox.stub();
-                methodStub = sandbox.stub();
-
-                sts.spec = {};
-                sts.spec.paths = {};
-                sts.spec.paths[pathMock] = {};
-                sts.spec.paths[pathMock][methodStub] = {};
-            });
-
             it ('should do nothing on null spec parameters', function () {
-                sts.addUrlParameters(pathMock, methodStub, { request: {} });
+                sts.substituteUrlParameters({ request: {} });
             });
 
             it ('should do nothing on null request parameters', function () {
-                sts.spec.paths[pathMock][methodStub].parameters = [];
-                sts.addUrlParameters(pathMock, methodStub, { request: {} });
+                sts.substituteUrlParameters({ specMethodParameters: [], request: {} });
             });
 
             it ('should do nothing on empty spec parameters', function () {
-                sts.spec.paths[pathMock][methodStub].parameters = [];
-                sts.addUrlParameters(pathMock, methodStub, { request: { parameters: {} } });
+                sts.substituteUrlParameters({ specMethodParameters: [], request: { parameters: {} } });
             });
 
             it ('should do nothing on fake `in` parameter', function () {
-                sts.spec.paths[pathMock][methodStub].parameters = [ { in: 'fake' } ];
-                sts.addUrlParameters(pathMock, methodStub, { request: { parameters: {} } });
+                sts.substituteUrlParameters({
+                    specMethodParameters: [ { in: 'fake' } ],
+                    request: { parameters: {} }
+                });
             });
 
             it ('should do nothing on missing path parameter in request', function () {
-                sts.spec.paths[pathMock][methodStub].parameters = [ { in: 'path', name: 'fake' } ];
-                sts.addUrlParameters(pathMock, methodStub, { request: { parameters: {} } });
+                sts.substituteUrlParameters({
+                    specMethodParameters: [ { in: 'path', name: 'fake' } ],
+                    request: { parameters: {} }
+                });
             });
 
             it ('should substitute', function () {
-                sts.spec.paths[pathMock][methodStub].parameters = [
-                    {
-                        in: 'path',
-                        name: 'param1'
-                    },
-                    {
-                        in: 'path',
-                        name: 'param2'
-                    }
-                ];
                 let example = {
+                    specMethodParameters: [
+                        {
+                            in: 'path',
+                            name: 'param1'
+                        },
+                        {
+                            in: 'path',
+                            name: 'param2'
+                        }
+                    ],
                     request: {
                         uri: 'http://localhost/foo/{param1}/{param2}',
                         parameters: {
@@ -333,47 +376,33 @@ describe('The lib module', function() {
                     }
                 };
 
-                sts.addUrlParameters(pathMock, methodStub, example);
+                sts.substituteUrlParameters(example);
 
                 expect(example.request.uri).to.eql('http://localhost/foo/bar/baz');
                 expect(example.request.parameters).not.to.have.property('param1');
                 expect(example.request.parameters).not.to.have.property('param2');
             });
         });
-        
+
         describe('add auth', function () {
-            let pathMock,
-                methodStub,
-                codeStub;
-
-            beforeEach(function () {
-                pathMock = sandbox.stub();
-                methodStub = sandbox.stub();
-                codeStub = sandbox.stub();
-
-                sts.spec = {};
-                sts.spec.paths = {};
-                sts.spec.paths[pathMock] = {};
-                sts.spec.paths[pathMock][methodStub] = {};
-            });
-
             it('should do nothing when not example.auth', function () {
-                sts.addAuth(pathMock, methodStub, codeStub, {});
-                sts.addAuth(pathMock, methodStub, codeStub, { auth: false });
+                sts.addAuth({});
+                sts.addAuth({ auth: false });
             });
 
             it('should do nothing when x-ample not defined', function () {
                 sts.spec.securityDefinitions = {
                     Test: {}
                 };
-                sts.spec.paths[pathMock][methodStub].security = [
-                    {
-                        Test: []
-                    }
-                ];
 
-                sts.addAuth(pathMock, methodStub, codeStub, {});
-                sts.addAuth(pathMock, methodStub, codeStub, { auth: true });
+                sts.addAuth({
+                    auth: true,
+                    specMethodSecurity: [
+                        {
+                            Test: []
+                        }
+                    ]
+                });
             });
 
             it('should do nothing when non-basic non-header', function () {
@@ -384,13 +413,15 @@ describe('The lib module', function() {
                         'x-ample': 'baz'
                     }
                 };
-                sts.spec.paths[pathMock][methodStub].security = [
-                    {
-                        Test: []
-                    }
-                ];
 
-                sts.addAuth(pathMock, methodStub, codeStub, { auth: true });
+                sts.addAuth({
+                    auth: true,
+                    specMethodSecurity: [
+                        {
+                            Test: []
+                        }
+                    ]
+                });
             });
 
             it('should add basic auth', function () {
@@ -400,19 +431,19 @@ describe('The lib module', function() {
                         'x-ample': 'test basic'
                     }
                 };
-                sts.spec.paths[pathMock][methodStub].security = [
-                    {
-                        Basic: []
-                    }
-                ];
                 let exampleMock = {
                     auth: true,
+                    specMethodSecurity: [
+                        {
+                            Basic: []
+                        }
+                    ],
                     request: {
                         headers: {}
                     }
                 };
 
-                sts.addAuth(pathMock, methodStub, codeStub, exampleMock);
+                sts.addAuth(exampleMock);
 
                 expect(exampleMock.request.headers).to.eql({ Authorization: 'test basic' });
             });
@@ -426,152 +457,126 @@ describe('The lib module', function() {
                         'x-ample': 'test foo bar'
                     }
                 };
-                sts.spec.paths[pathMock][methodStub].security = [
-                    {
-                        Basic: []
-                    }
-                ];
                 let exampleMock = {
                     auth: true,
+                    specMethodSecurity: [
+                        {
+                            Basic: []
+                        }
+                    ],
                     request: {
                         headers: {}
                     }
                 };
 
-                sts.addAuth(pathMock, methodStub, codeStub, exampleMock);
+                sts.addAuth(exampleMock);
 
                 expect(exampleMock.request.headers).to.eql({ Bar: 'test foo bar' });
             });
         });
-
-        it('should define test', function () {
-            let suitMock = new mochaStub.Suite(null);
-            let pathStub = sandbox.stub();
-            let methodStub = sandbox.stub();
-            let codeMock = '323';
-            let examplesStub = sandbox.stub();
-            let examplesMock = [
-                {
-                    description: 'test 1',
-                    request: {
-                        method: 'get'
-                    },
-                    response: {
-                        status: 200
-                    }
-                },
-                {
-                    description: 'test 2',
-                    request: {
-                        method: 'post'
-                    },
-                    response: {
-                        status: 300
-                    }
-                }
-            ];
-            let getExamplesStub = sandbox.stub(sts, 'getExamples').returns(examplesMock);
-
-            sts.test(suitMock, pathStub, methodStub, codeMock, examplesStub);
-
-            expect(getExamplesStub).to.have.been.calledWithExactly(pathStub, methodStub, 323, examplesStub);
-            expect(suitMock.suits.length).to.equals(2);
-            expect(suitMock.suits[0]['name']).to.eql('GET 200: test 1');
-            expect(suitMock.suits[0]['test']).to.be.a('function');
-            expect(suitMock.suits[1]['name']).to.eql('POST 300: test 2');
-            expect(suitMock.suits[1]['test']).to.be.a('function');
-
-            sts.spec.paths = {};
-            sts.spec.paths[pathStub] = {};
-            sts.spec.paths[pathStub][methodStub] = {};
-            sts.spec.paths[pathStub][methodStub].responses = {};
-            sts.spec.paths[pathStub][methodStub].responses[codeMock] = {};
-            let schemaStub = sts.spec.paths[pathStub][methodStub].responses[codeMock].schema = sandbox.stub();
-
-            let doTestStub = sandbox.stub(sts, 'doTest');
-
-            suitMock.suits[0]['test']();
-            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[0]);
-
-            suitMock.suits[1]['test']();
-            expect(doTestStub).to.have.been.calledWithExactly(schemaStub, examplesMock[1]);
-        });
         
-        describe('testing example', function () {
-            let schemaStub,
-                exampleStub,
+        it('should get validator', function () {
+            let exampleStub = sandbox.stub();
+            let validator = sts.getValidator(exampleStub);
+            expect(validator).to.be.a('function');
+
+            let respStub = sandbox.stub();
+            let promiseStub = sandbox.stub();
+            let doValidateStub = sandbox.stub(sts, 'doValidate').returns(promiseStub);
+            let promise = validator(respStub);
+            expect(promise).to.equals(promiseStub);
+            expect(doValidateStub).to.have.been.calledWithExactly(exampleStub, respStub);
+        });
+
+        describe('validating response', function () {
+            let exampleStub,
                 responseStub;
 
             beforeEach(function () {
-                schemaStub = sandbox.stub();
                 exampleStub = sandbox.stub();
-                responseStub = sandbox.stub();
                 exampleStub.response = sandbox.stub();
+                responseStub = sandbox.stub();
+
+                chaiStub.expect = sandbox.stub().returns(chaiStub);
+                chaiStub.to = chaiStub;
+                chaiStub.containSubset = sandbox.stub().returns(chaiStub);
             });
 
-            it('should do test', function () {
-                let validatorStub = sandbox.stub(sts, 'getValidator');
-                validatorStub.returns(validatorStub);
-                exampleStub.request = sandbox.stub();
-                exampleStub.request.method = sandbox.stub();
-                preqStub[exampleStub.request.method] = sandbox.stub().returns(preqStub);
+            let commonTest = function (promise) {
+                expect(promise).to.be.undefined;
+                expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
+                expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
+            };
 
-                let promise = sts.doTest(schemaStub, exampleStub);
-
-                expect(validatorStub).to.have.been.calledWithExactly(schemaStub, exampleStub);
-                expect(preqStub[exampleStub.request.method]).to.have.been.calledWithExactly(exampleStub.request);
-                expect(preqStub.then).to.have.been.calledWithExactly(validatorStub, validatorStub);
-                expect(promise).to.equals(preqStub);
+            it('should validate', function () {
+                commonTest(sts.doValidate(exampleStub, responseStub));
             });
 
-            it('should return validator', function () {
-                let validator = sts.getValidator(schemaStub, exampleStub);
-                expect(validator).to.be.a('function');
+            it('should validate with authProviderFor', function () {
+                exampleStub.authProviderFor = sandbox.stub();
+                let dispatchAuthStub = sandbox.stub(sts, 'dispatchAuth');
 
-                let promiseMock = sandbox.stub();
-                let doValidateStub = sandbox.stub(sts, 'doValidate').returns(promiseMock);
-
-                let promise = validator(responseStub);
-
-                expect(doValidateStub).to.have.been.calledWithExactly(schemaStub, exampleStub, responseStub);
-                expect(promise).to.equals(promiseMock);
+                commonTest(sts.doValidate(exampleStub, responseStub));
+                expect(dispatchAuthStub).to.have.been.calledWithExactly(exampleStub.authProviderFor, responseStub);
             });
 
-            describe('validate', function () {
-                let commonTest = function (promise) {
-                    expect(promise).to.be.undefined;
-                    expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
-                    expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
-                };
+            it('should validate with no $ref', function () {
+                exampleStub.specResponseSchema = sandbox.stub();
+                commonTest(sts.doValidate(exampleStub, responseStub));
+            });
 
-                it('should validate with no schema', function () {
-                    commonTest(sts.doValidate(null, exampleStub, responseStub));
-                });
+            it('should validate with no body', function () {
+                exampleStub.specResponseSchema = sandbox.stub();
+                exampleStub.specResponseSchema['$ref'] = sandbox.stub();
+                commonTest(sts.doValidate(exampleStub, responseStub));
+            });
 
-                it('should validate with no $ref', function () {
-                    commonTest(sts.doValidate(schemaStub, exampleStub, responseStub));
-                });
+            it('should validate with schema', function () {
+                exampleStub.specResponseSchema = sandbox.stub();
+                exampleStub.specResponseSchema['$ref'] = sandbox.stub();
+                responseStub.body = sandbox.stub();
+                let promiseStub = sandbox.stub();
+                let doValidateSwaggerSchemaStub =
+                    sandbox.stub(sts, 'doValidateSwaggerSchema').returns(promiseStub);
 
-                it('should validate with no body', function () {
-                    schemaStub['$ref'] = sandbox.stub();
-                    commonTest(sts.doValidate(schemaStub, exampleStub, responseStub));
-                });
+                let promise = sts.doValidate(exampleStub, responseStub);
 
-                it('should validate with schema', function () {
-                    schemaStub['$ref'] = sandbox.stub();
-                    responseStub.body = sandbox.stub();
-                    let promiseStub = sandbox.stub();
-                    let doValidateSwaggerSchemaStub =
-                        sandbox.stub(sts, 'doValidateSwaggerSchema').returns(promiseStub);
+                expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
+                expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
+                expect(doValidateSwaggerSchemaStub).to.have.been.calledWithExactly(
+                    exampleStub.specResponseSchema['$ref'], responseStub.body);
+                expect(promise).to.equals(promiseStub);
+            });
+        });
 
-                    let promise = sts.doValidate(schemaStub, exampleStub, responseStub);
+        it('should dispatch auth from response', function () {
+            sts.spec.securityDefinitions = {
+                strategy2: {},
+                strategy3: {}
+            };
+            let exampleStrategiesMock = {
+                strategy1: {},
+                strategy2: {},
+                strategy3: {
+                    'x-ample': '[${headers.header1}:${body.field2}]'
+                }
+            };
+            let responseMock = {
+                headers: {
+                    header1: 'value1'
+                },
+                body: {
+                    field2: 'value2'
+                }
+            };
 
-                    expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
-                    expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleStub.response);
-                    expect(doValidateSwaggerSchemaStub).to.have.been.calledWithExactly(
-                        schemaStub['$ref'], responseStub.body);
-                    expect(promise).to.equals(promiseStub);
-                });
+            sts.dispatchAuth(exampleStrategiesMock, responseMock);
+
+            expect(sts.spec.securityDefinitions).to.eql({
+                strategy2: {},
+                strategy3: {
+                    'x-ample': '[value1:value2]'
+                }
             });
         });
 
@@ -580,6 +585,10 @@ describe('The lib module', function() {
                 bodyStub;
 
             beforeEach(function () {
+                swaggerToolsStub.specs = swaggerToolsStub;
+                swaggerToolsStub.v2 = swaggerToolsStub;
+                swaggerToolsStub.validateModel = sandbox.stub();
+
                 refStub = sandbox.stub();
                 bodyStub = sandbox.stub();
             });

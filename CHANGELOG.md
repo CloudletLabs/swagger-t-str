@@ -1,6 +1,7 @@
 ## 1.0.8
 
 - Fix schema validation failures not being caught
+- Implement auth providers in runtime
 
 ## 1.0.7
 

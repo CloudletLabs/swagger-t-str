@@ -90,20 +90,49 @@ There is only `Basic` and headers-based auth types currently supported.
 
 The idea is to add `x-ample` to your `securityDefinitions`,
  so that it will be possible to find it automatically based on method `security` definition.
-Additionally you need to specifically enable `auth: true` for your example,
+You need to enable `auth: true` for your example,
  so if it is not explicitly enabled, we will get a test failure.
-In the example below see how to use `Bearer` auth:
+
+Sometimes it is handy to save auth data from specific response and use it for other requests.
+For instance, we have `POST /auth_token` endpoint with `Basic` auth,
+ that is returns simple JSON `{"auth_token":"abc"}`. And we want to use this token later for other requests.
+To achieve that you can use `authProviderFor` in a given example,
+ that will define an `x-ample` for a given `securityDefinitions`.
+There is `body` and `headers` available in the context of `x-ample` string.
+In the example below you can find how to achieve this:
 
 ```yaml
 securityDefinitions:
-  Bearer:
+  Basic:
+    type: basic
+    description: Password auth
+    x-ample: Basic qwe # set `Authorization` header value
+  Bearer: # no `x-ample` provided - will be set in runtime by provider
     type: apiKey
     description: Token auth
     in: header
     name: Authorization
-    x-ample: Bearer abc
 
 paths:
+  /auth_token:
+    post:
+      description: Get auth token for username+password pair
+      security:
+        - Basic: []
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should return auth token
+              auth: true # here is we enabling auth for this specific sample
+              authProviderFor: # define this sample to be a provider for the given auth definitions
+                Bearer:
+                  x-ample: 'Bearer ${body.auth_token}' # define how resulting auth example should looks like
+              response:
+                body:
+                  auth_token: 'abc'
+        '401': # no auth set to true (because in fact no x-amples defined) - will not set headers
+          description: Unauthorized
   '/users':
     get:
       description: Get users
@@ -114,10 +143,10 @@ paths:
           description: List of users
           x-amples:
             - description: should return the list of users
-              auth: true # here is we enabling auth only for this specific sample
+              auth: true # we still need to tell that we want this example to be authenticated
               response:
                 body: []
-        '401': # no auth set to true (because in fact no x-amples defined) - will not set headers
+        '401':
           description: Unauthorized
 ```
 
