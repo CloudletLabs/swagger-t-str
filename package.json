@@ -58,7 +58,11 @@
     "tests",
     "tdd",
     "bdd",
-    "api"
+    "api",
+    "spec",
+    "specification",
+    "driven",
+    "development"
   ],
   "author": "Dmytro Kryvenko",
   "license": "MIT",
