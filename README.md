@@ -252,7 +252,7 @@ paths:
 Sometimes it is handy to save some data from specific response and use it for other requests.
 For instance, we have `POST /auth_token` endpoint with `Basic` auth,
  that is returns simple JSON `{ "auth_token": "abc" }`. And we want to use this token later for other requests.
-Additionally we want to remove this token later, so we also need remember it as a parameter.
+Additionally we want to remove this token later, so we also need to remember it as a parameter.
 To achieve that you can use `authProviderFor` and `paramProviderFor` in a given example,
  that will define an `x-ample` for a given `securityDefinitions` or `parameters`.
 There is `obj` and `headers` available in the context of `x-ample` string.
