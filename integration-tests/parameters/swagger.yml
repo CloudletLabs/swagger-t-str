@@ -26,7 +26,8 @@ paths:
           x-amples:
             - description: should return a user
               paramProviderFor:
-                username: '${obj.username}'
+                username:
+                  'x-ample': '${obj.username}'
               response:
                 obj:
                   username: 'usernameFromGet'

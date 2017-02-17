@@ -349,9 +349,9 @@ describe('STSExampleHandler module', function() {
             ];
             let exampleMock = {
                 paramProviderFor: {
-                    param1: sandbox.stub(),
-                    param2: sandbox.stub(),
-                    param3: sandbox.stub()
+                    param1: {'x-ample': sandbox.stub()},
+                    param2: {'x-ample': sandbox.stub()},
+                    param3: {'x-ample': sandbox.stub()}
                 }
             };
             exampleHandler.client = {
@@ -368,9 +368,9 @@ describe('STSExampleHandler module', function() {
             exampleHandler.dispatchParams(operationStub, exampleMock, responseStub);
 
             expect(evalStub).to.calledThrice;
-            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param1);
-            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param2);
-            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param3);
+            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param1['x-ample']);
+            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param2['x-ample']);
+            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param3['x-ample']);
             expect(operationStub.parameters).to.eql([
                 {
                     name: 'param1',

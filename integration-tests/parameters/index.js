@@ -12,7 +12,6 @@ module.exports = function (app) {
     app.delete('/api/user/:username', function (req, res) {
         if (req.params.username != 'usernameInMethod' &&
             req.params.username != 'usernameInExample') return res.status(500).send('Internal app error');
-        console.log(req.params.username);
         res.status(200).send();
     });
 
