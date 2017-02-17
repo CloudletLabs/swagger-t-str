@@ -1,3 +1,7 @@
+## 1.1.2
+
+- Make it possible to define auth credentials per example (#7)
+
 ## 1.1.0
 
 - Massive refactoring, switching to [swagger-client](https://www.npmjs.com/package/swagger-client)

@@ -62,7 +62,7 @@ paths:
               authProviderFor:
                 Bearer:
                   x-ample: 'Bearer ${obj.auth_token}'
-              request:
+              response:
                 obj:
                   auth_token: token_2
         '401':
@@ -70,12 +70,16 @@ paths:
     delete:
       description: Delete token
       security:
+        - Basic: []
         - Bearer: []
       responses:
         '200':
           description: OK
           x-amples:
             - description: should delete token
-              auth: true
+              auth:
+                Basic:
+                  username: exampleUsername
+                  password: examplePassword
         '401':
           description: Unauthorized

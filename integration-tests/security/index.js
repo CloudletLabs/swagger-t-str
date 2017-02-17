@@ -12,6 +12,7 @@ module.exports = function (app) {
         res.status(200).json({auth_token: 'token_2'});
     });
     app.delete('/api/auth_token', function (req, res) {
+        if (req.header('Authorization') != 'Basic ZXhhbXBsZVVzZXJuYW1lOmV4YW1wbGVQYXNzd29yZA==') return res.status(401).send('Unauthorized');
         if (req.header('AuthToken') != 'Bearer token_2') return res.status(401).send('Unauthorized');
         res.status(200).send();
     });

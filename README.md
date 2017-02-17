@@ -197,6 +197,7 @@ The idea is to add `x-ample` to your `securityDefinitions`,
  so that it will be possible to find it automatically based on method `security` definitions.
 You need to enable `auth: true` for your example,
  so if it is not explicitly enabled, we will get a test failure.
+Instead of `auth: true` it could be an object, same as `x-ample` in the security definitions.
 
 Sometimes it is handy to save auth data from specific response and use it for other requests.
 For instance, we have `POST /auth_token` endpoint with `Basic` auth,
@@ -244,13 +245,17 @@ paths:
     get:
       description: Get users
       security:
+        - Basic: []
         - Bearer: []
       responses:
         '200':
           description: List of users
           x-amples:
             - description: should return the list of users
-              auth: true # we still need to tell that we want this example to be authenticated
+              auth: # we still need to tell that we want this example to be authenticated
+                Basic:
+                  username: foo1
+                  password: baz1
         '401':
           description: Unauthorized
 ```

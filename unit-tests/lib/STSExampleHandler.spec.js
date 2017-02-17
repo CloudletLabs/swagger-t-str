@@ -63,57 +63,38 @@ describe('STSExampleHandler module', function() {
     });
 
     describe('handling example', function () {
-        let operationStub,
-            exampleStub,
-            responseCodeStub,
-            normalizedExampleStub,
-            normalizeExampleStub,
-            validatorStub,
-            getValidatorStub,
-            requestStub,
-            buildRequestStub,
-            promiseStub;
 
-        beforeEach(function () {
-            operationStub = sandbox.stub();
+        it('should handle example with auth', function () {
+            let operationStub = sandbox.stub();
             operationStub.nickname = 'foo';
-            exampleStub = sandbox.stub();
-            responseCodeStub = sandbox.stub();
-            normalizedExampleStub = sandbox.stub();
-            normalizeExampleStub = sandbox.stub(exampleHandler, 'normalizeExample').returns(normalizedExampleStub);
-            validatorStub = sandbox.stub();
-            getValidatorStub = sandbox.stub(exampleHandler, 'getValidator').returns(validatorStub);
-            requestStub = sandbox.stub();
-            buildRequestStub = sandbox.stub(exampleHandler, 'buildRequest').returns(requestStub);
-            promiseStub = sandbox.stub();
+            let exampleStub = sandbox.stub();
+            let responseCodeStub = sandbox.stub();
+            let normalizedExampleStub = sandbox.stub();
+            let normalizeExampleStub = sandbox.stub(exampleHandler, 'normalizeExample').returns(normalizedExampleStub);
+            let validatorStub = sandbox.stub();
+            let getValidatorStub = sandbox.stub(exampleHandler, 'getValidator').returns(validatorStub);
+            let requestStub = sandbox.stub();
+            let buildRequestStub = sandbox.stub(exampleHandler, 'buildRequest').returns(requestStub);
+            let clientAuthorizationsStub = sandbox.stub();
+            let getAuthorizationsStub =
+                sandbox.stub(exampleHandler, 'getAuthorizations').returns(clientAuthorizationsStub);
+            let promiseStub = sandbox.stub();
             promiseStub.then = sandbox.stub();
             exampleHandler.client = {
                 default: {
                     foo: sandbox.stub().returns(promiseStub)
                 }
             };
-        });
 
-        let commonTests = function () {
+            exampleHandler.handle(operationStub, responseCodeStub, exampleStub);
+
             expect(normalizeExampleStub).to.calledWithExactly(responseCodeStub, exampleStub);
             expect(getValidatorStub).to.calledWithExactly(operationStub, responseCodeStub, normalizedExampleStub);
             expect(buildRequestStub).to.calledWithExactly(operationStub, normalizedExampleStub);
+            expect(getAuthorizationsStub).to.calledWithExactly(normalizedExampleStub);
             expect(promiseStub.then).to.calledWithExactly(validatorStub, validatorStub);
-        };
-
-        it('should handle example without auth', function () {
-            exampleHandler.handle(operationStub, responseCodeStub, exampleStub);
-            commonTests();
-            expect(exampleHandler.client.default.foo).to.calledWithExactly(requestStub, null);
-        });
-
-        it('should handle example with auth', function () {
-            normalizedExampleStub.auth = true;
-            exampleHandler.clientAuthorizations = sandbox.stub();
-            exampleHandler.handle(operationStub, responseCodeStub, exampleStub);
-            commonTests();
             expect(exampleHandler.client.default.foo).to.calledWithExactly(requestStub,
-                { clientAuthorizations: exampleHandler.clientAuthorizations });
+                { clientAuthorizations: clientAuthorizationsStub });
         });
     });
 
@@ -231,6 +212,36 @@ describe('STSExampleHandler module', function() {
             expect(exampleHandler.buildDefaultRequest(operationMock)).to.eql({
                 bar: 'example'
             });
+        });
+    });
+
+    describe('getting authorizations', function () {
+        it('should do nothing when not example.auth', function () {
+            exampleHandler.getAuthorizations({});
+        });
+
+        it('should return existing clientAuthorizations if not an object', function () {
+            expect(exampleHandler.getAuthorizations({ auth: true })).to.equals(authHelper);
+        });
+
+        it('should return additional clientAuthorizations if an object', function () {
+            let clonedClientAuthorizationsStub = sandbox.stub();
+            let assignStub = sandbox.stub(Object, 'assign').returns(clonedClientAuthorizationsStub);
+            let addStub = sandbox.stub(authHelper, 'add');
+            let exampleMock = {
+                auth: {
+                    foo: 'bar',
+                    qwe: 'abc'
+                }
+            };
+
+            let clientAuthorizations = exampleHandler.getAuthorizations(exampleMock);
+
+            expect(assignStub).to.calledWithExactly({}, authHelper);
+            expect(clientAuthorizations).equals(clonedClientAuthorizationsStub);
+            expect(addStub).to.calledTwice;
+            expect(addStub).to.calledWithExactly(exampleHandler.client, clonedClientAuthorizationsStub, 'foo', 'bar');
+            expect(addStub).to.calledWithExactly(exampleHandler.client, clonedClientAuthorizationsStub, 'qwe', 'abc');
         });
     });
 
