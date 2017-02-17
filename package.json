@@ -1,6 +1,6 @@
 {
   "name": "swagger-t-str",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Specification-Driven test framework",
   "main": "index.js",
   "bin": {
