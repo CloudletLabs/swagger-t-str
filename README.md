@@ -97,12 +97,13 @@ var client = new Swagger({
 });
 ```
 
-To build a suite, we are finding all operations like `getPetById` in the spec file
- (operations execution order will be the same as in the spec file).
-Then, for each operation we are building an option object like `{petId:7}` in the following way:
+To build a suites, we are finding all operations like `getPetById` in the spec file
+ (suites execution order will be the same as in the spec file).
+Then, for each operation we are building an `options` object like `{petId:7}` from above in the following way:
 
 1. Getting `parameters` from paths and methods and looking for it's `x-ample` value
 1. Overriding result from previous step using current `x-amples` instance `request.headers`
+1. Overriding result from previous step using current `x-amples` instance `request.parameters`
 1. Overriding in the result from previous step it's field `body` with the current `x-amples` instance `request.body`
 
 In other words, the following spec:
@@ -152,10 +153,10 @@ paths:
                   some_body: example
 ```
 
-will resulted into the following `options` object for the `swagger-client`:
+will be resulted into the following `options` object for the `swagger-client`:
 
 ```js
-{
+let options = {
     username: 'usernameInPath',
     display_name: 'displayNameInMethod',
     email: 'emailInExample',
@@ -167,26 +168,26 @@ will resulted into the following `options` object for the `swagger-client`:
 ```
 
 For the reference, here is a sample response object from `swagger-client`
- (not that what we usually refer to as a `body` in the responses for some reason called `obj`):
+ (note that what we usually refer to as a `body` in the `swagger-client` responses for some reason called `obj`):
 
 ```js
-{
-    "data": "{\"version\":\"1.1\"}"
-    "headers": {
-        "connection": "close"
-        "content-length": "17"
-        "content-type": "application/json; charset=utf-8"
-        "date": "Fri, 17 Feb 2017 04:50:59 GMT"
-        "etag": "W/\"11-NrB2yjXryoCwCkVzPW8jaQ\""
-        "x-powered-by": "Express"
-    }
-    "method": "GET"
-    "obj": {
-        "version": "1.1"
-    }
-    "status": 200
-    "statusText": "{\"version\":\"1.1\"}"
-    "url": "http://localhost:8081/api/info"
+let options = {
+    'data': '{"version":"1.1"}',
+    'headers': {
+        'connection': 'close',
+        'content-length': '17',
+        'content-type': 'application/json; charset=utf-8',
+        'date': 'Fri, 17 Feb 2017 04:50:59 GMT',
+        'etag': 'W/"11-NrB2yjXryoCwCkVzPW8jaQ"',
+        'x-powered-by': 'Express',
+    },
+    'method': 'GET',
+    'obj': {
+        'version': '1.1'
+    },
+    'status': 200,
+    'statusText': '{"version":"1.1"}',
+    'url': 'http://localhost:8081/api/info'
 }
 ```
 
