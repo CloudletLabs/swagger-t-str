@@ -1,0 +1,50 @@
+swagger: '2.0'
+info:
+  title: parameters
+  version: '1'
+basePath: /api
+consumes:
+  - application/json
+produces:
+  - application/json
+
+paths:
+  '/user/{username}':
+    parameters:
+      - description: Username
+        in: path
+        name: username
+        required: true
+        type: string
+        x-ample: usernameInPath
+    get:
+      description: Get user
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should return user
+    put:
+      description: Update user
+      parameters:
+        - description: Username
+          in: path
+          name: username
+          required: true
+          type: string
+          x-ample: usernameInMethod
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should update user
+    delete:
+      description: Delete user
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should delete user
+              request:
+                parameters:
+                  username: usernameInExample

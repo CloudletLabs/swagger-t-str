@@ -27,8 +27,8 @@
   "scripts": {
     "test": "npm run test-unit && npm run test-integration",
     "test-unit": "nyc npm run test-unit-only",
-    "test-unit-only": "NODE_ENV=test mocha './unit-tests/**/*.spec.js'",
-    "test-integration": "NODE_ENV=test node './integration-tests/index.spec.js'"
+    "test-unit-only": "NODE_ENV=test _mocha './unit-tests/**/*.spec.js'",
+    "test-integration": "NODE_ENV=test _mocha './integration-tests/index.spec.js'"
   },
   "dependencies": {
     "commander": "2.x.x",

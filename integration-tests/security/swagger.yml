@@ -1,11 +1,8 @@
 swagger: '2.0'
 info:
-  title: swagger-t-str-mock
+  title: security
   version: '1'
-  description: This is the mock API specs
 basePath: /api
-schemes:
-  - http
 consumes:
   - application/json
 produces:
@@ -16,91 +13,45 @@ securityDefinitions:
     type: basic
     description: Password auth
     x-ample:
-      username: qwe
-      password: qwe
+      username: basicUsername
+      password: basicPassword
   BasicHeader:
     type: basic
     description: Password auth setting header directly
-    x-ample: Basic qwe
   Bearer:
     type: apiKey
     description: Token auth
     in: header
-    name: Authorization
-
-definitions:
-  infoo:
-    properties:
-      version:
-        type: string
-    required:
-      - version
-    type: object
-  authToken:
-    properties:
-      auth_token:
-        type: string
-    required:
-      - auth_token
-    type: object
+    name: AuthToken
 
 paths:
-  /status:
-    get:
-      description: Get service status
-      produces:
-        - text/html
-      responses:
-        '200':
-          description: OK
-  /info:
-    get:
-      description: Get service info
+  /auth_token:
+    post:
+      description: Get auth token for username+password pair
       security:
         - Basic: []
       responses:
         '200':
           description: OK
-          schema:
-            $ref: '#/definitions/infoo'
-          x-amples:
-            - description: should return info object
-              auth: true
-              response:
-                obj:
-                  version: '1.1'
-  /auth_token:
-    post:
-      description: Get auth token for username+password pair
-      security:
-        - BasicHeader: []
-      responses:
-        '200':
-          description: OK
-          schema:
-            $ref: '#/definitions/authToken'
           x-amples:
             - description: should return auth token
               auth: true
               authProviderFor:
+                BasicHeader:
+                  x-ample: 'Basic ${headers.auth}'
                 Bearer:
                   x-ample: 'Bearer ${obj.auth_token}'
               response:
+                headers:
+                  auth: 'header'
                 obj:
-                  auth_token: 'abc'
+                  auth_token: 'token_1'
         '401':
           description: Unauthorized
-  '/auth_token/{token}':
-    parameters:
-      - description: Token
-        in: path
-        name: token
-        required: true
-        type: string
-        x-ample: qwe
     put:
       description: Update token
       security:
+        - BasicHeader: []
         - Bearer: []
       responses:
         '200':
@@ -112,10 +63,8 @@ paths:
                 Bearer:
                   x-ample: 'Bearer ${obj.auth_token}'
               request:
-                parameters:
-                  token: abc
                 obj:
-                  auth_token: xyz
+                  auth_token: token_2
         '401':
           description: Unauthorized
     delete:
@@ -128,8 +77,5 @@ paths:
           x-amples:
             - description: should delete token
               auth: true
-              request:
-                parameters:
-                  token: xyz
         '401':
           description: Unauthorized

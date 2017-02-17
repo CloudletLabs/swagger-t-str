@@ -59,10 +59,6 @@ describe('STS module', function() {
         sandbox.restore();
     });
 
-    it('should construct Mocha', function () {
-        expect(mochaConstructorSpy).to.calledWith();
-    });
-
     it('should construct STS', function () {
         expect(sts.url).to.equals(urlStub);
         expect(sts.specPath).to.equals(specPathStub);
@@ -228,7 +224,7 @@ describe('STS module', function() {
     });
 
     it('should build root suite', function () {
-        sts.url = sandbox.stub();
+        sts.url = 'http://example.com';
         sts.client = {
             swaggerObject: {
                 paths: {
@@ -236,19 +232,28 @@ describe('STS module', function() {
                     '/bar': {},
                     '/baz': {}
                 }
+            },
+            info: {
+                title: 'foo bar'
             }
         };
         sts.callback = sandbox.stub();
-        mochaMock.Suite = sandbox.stub();
-        mochaMock.Suite.create = sandbox.stub().returns(mochaMock.Suite);
+        let suiteSpy = sandbox.spy();
+        mochaMock.Suite = function () {
+            //noinspection JSCheckFunctionSignatures
+            suiteSpy.apply(this, arguments);
+        };
         mochaMock.prototype.suite = sandbox.stub();
+        mochaMock.prototype.suite.addSuite = sandbox.stub();
         mochaMock.prototype.run = sandbox.stub();
         let handlePathStub = sandbox.stub(sts, 'handlePath');
 
         sts.buildRootSuite();
 
-        expect(mochaMock.Suite.create).to.calledWithExactly(mochaMock.prototype.suite, sts.url);
-        expect(sts.serverSuite).to.equals(mochaMock.Suite);
+        expect(mochaConstructorSpy).to.calledWith();
+        expect(suiteSpy).to.calledWithExactly('http://example.com: foo bar');
+        expect(sts.serverSuite).to.be.an.instanceof(mochaMock.Suite);
+        expect(mochaMock.prototype.suite.addSuite).to.calledWith(sts.serverSuite);
         expect(handlePathStub).to.calledTwice;
         expect(handlePathStub.firstCall).to.calledWithExactly('/bar');
         expect(handlePathStub.secondCall).to.calledWithExactly('/baz');
