@@ -10,6 +10,7 @@ chai.use(sinonChai);
 let proxyquire = require('proxyquire');
 
 describe('STSSchemaValidator module', function() {
+    //noinspection JSUnresolvedVariable
     let sandbox = sinon.sandbox.create();
     let swaggerToolsStub,
         specStub,
@@ -88,7 +89,8 @@ describe('STSSchemaValidator module', function() {
 
         let commonTest = function (promise) {
             expect(promise).to.be.a('promise');
-            expect(swaggerToolsStub.validateModel).to.have.been.calledWithExactly(
+            //noinspection JSUnresolvedVariable
+            expect(swaggerToolsStub.validateModel).to.calledWithExactly(
                 schemaValidator.spec, refStub, bodyStub, sinon.match.func);
         };
 

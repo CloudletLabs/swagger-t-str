@@ -253,6 +253,7 @@ describe('STS module', function() {
         expect(mochaConstructorSpy).to.calledWith();
         expect(suiteSpy).to.calledWithExactly('http://example.com: foo bar');
         expect(sts.serverSuite).to.be.an.instanceof(mochaMock.Suite);
+        //noinspection JSUnresolvedVariable
         expect(mochaMock.prototype.suite.addSuite).to.calledWith(sts.serverSuite);
         expect(handlePathStub).to.calledTwice;
         expect(handlePathStub.firstCall).to.calledWithExactly('/bar');

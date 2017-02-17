@@ -2,6 +2,7 @@
 
 module.exports = function (app) {
     app.get('/api/user/:username', function (req, res) {
+        //noinspection JSUnresolvedVariable
         if (req.params.username != 'usernameInPath') return res.status(500).send('Internal app error');
         res.status(200).send();
     });

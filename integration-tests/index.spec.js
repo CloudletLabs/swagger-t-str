@@ -15,6 +15,7 @@ let startServer = function (name, app) {
     return new Promise(function (resolve) {
         let server = app.listen(8081, function() {
             let sts = new STS('http://localhost:8081', `./integration-tests/${name}/swagger.yml`);
+            //noinspection JSIgnoredPromiseFromCall
             sts.start(function(failures){
                 server.close();
                 resolve(failures);
