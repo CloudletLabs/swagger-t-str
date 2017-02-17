@@ -192,11 +192,31 @@ describe('STSExampleHandler module', function() {
     });
     
     describe('building default request', function () {
+        beforeEach(function () {
+            exampleHandler.client = {
+                swaggerObject: {}
+            };
+        });
+
+        it('should build request for empty global parameters', function () {
+            expect(exampleHandler.buildDefaultRequest({})).to.eql({});
+        });
+
         it('should build request for empty parameters', function () {
+            exampleHandler.client.swaggerObject.parameters = {};
             expect(exampleHandler.buildDefaultRequest({})).to.eql({});
         });
 
         it('should build request for given parameters', function () {
+            exampleHandler.client.swaggerObject.parameters = {
+                foo: {
+                    'x-ample': 'example1'
+                },
+                bar: {
+                    'x-ample': 'example2'
+                },
+                baz: { }
+            };
             let operationMock = {
                 parameters: [
                     {
@@ -204,13 +224,19 @@ describe('STSExampleHandler module', function() {
                     },
                     {
                         name: 'bar',
-                        'x-ample': 'example'
+                        'x-ample': 'example3'
+                    },
+                    {
+                        name: 'baz',
+                        'x-ample': 'example4'
                     }
                 ]
             };
 
             expect(exampleHandler.buildDefaultRequest(operationMock)).to.eql({
-                bar: 'example'
+                foo: 'example1',
+                bar: 'example3',
+                baz: 'example4'
             });
         });
     });
@@ -255,6 +281,7 @@ describe('STSExampleHandler module', function() {
         chaiStub.to = chaiStub;
         chaiStub.containSubset = sandbox.stub().returns(chaiStub);
         let dispatchAuthStub = sandbox.stub(exampleHandler, 'dispatchAuth');
+        let dispatchParamsStub = sandbox.stub(exampleHandler, 'dispatchParams');
         let promiseStub = sandbox.stub();
         schemaValidatorMock.prototype.validate = sandbox.stub().returns(promiseStub);
 
@@ -263,6 +290,7 @@ describe('STSExampleHandler module', function() {
         expect(chaiStub.expect).to.calledWithExactly(responseStub);
         expect(chaiStub.containSubset).to.calledWithExactly(exampleStub.response);
         expect(dispatchAuthStub).to.calledWithExactly(exampleStub, responseStub);
+        expect(dispatchParamsStub).to.calledWithExactly(operationStub, exampleStub, responseStub);
         expect(schemaValidatorMock.prototype.validate).to.calledWithExactly(
             operationStub, responseCodeStub, responseStub);
         expect(promise).to.equals(promiseStub);
@@ -279,32 +307,96 @@ describe('STSExampleHandler module', function() {
                 strategy2: {},
                 strategy3: {}
             };
-            let example = {
+            let exampleStub = sandbox.stub();
+            let exampleMock = {
                 authProviderFor: {
                     strategy1: {},
                     strategy2: {},
                     strategy3: {
-                        'x-ample': '[${headers.header1}:${obj.field2}]'
+                        'x-ample': exampleStub
                     }
                 }
             };
-            let responseMock = {
-                headers: {
-                    header1: 'value1'
-                },
-                obj: {
-                    field2: 'value2'
-                }
-            };
+            let responseStub = sandbox.stub();
             exampleHandler.clientAuthorizations = sandbox.stub();
+            let evaluatedString = sandbox.stub();
+            let evalStub = sandbox.stub(exampleHandler, 'eval').returns(evaluatedString);
             authHelper.add = sandbox.stub();
 
-            exampleHandler.dispatchAuth(example, responseMock);
+            exampleHandler.dispatchAuth(exampleMock, responseStub);
 
             expect(authHelper.add).to.calledOnce;
+            expect(evalStub).to.calledWithExactly(responseStub, exampleStub);
             expect(authHelper.add).to.calledWithExactly(exampleHandler.client, exampleHandler.clientAuthorizations,
-                'strategy3', '[value1:value2]'
-            );
+                'strategy3', evaluatedString);
         });
+    });
+
+    describe('dispatching params from response', function () {
+        it('should do nothing on empty paramProviderFor', function () {
+            exampleHandler.dispatchParams(null, {}, null);
+        });
+
+        it('should dispatch params from response', function () {
+            let operationStub = sandbox.stub();
+            operationStub.parameters = [
+                {
+                    name: 'param1'
+                },
+                {
+                    name: 'param2'
+                }
+            ];
+            let exampleMock = {
+                paramProviderFor: {
+                    param1: sandbox.stub(),
+                    param2: sandbox.stub(),
+                    param3: sandbox.stub()
+                }
+            };
+            exampleHandler.client = {
+                swaggerObject: {
+                    parameters: {
+                        param1: {}
+                    }
+                }
+            };
+            let responseStub = sandbox.stub();
+            let evaluatedString = sandbox.stub();
+            let evalStub = sandbox.stub(exampleHandler, 'eval').returns(evaluatedString);
+
+            exampleHandler.dispatchParams(operationStub, exampleMock, responseStub);
+
+            expect(evalStub).to.calledThrice;
+            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param1);
+            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param2);
+            expect(evalStub).to.calledWithExactly(responseStub, exampleMock.paramProviderFor.param3);
+            expect(operationStub.parameters).to.eql([
+                {
+                    name: 'param1',
+                    'x-ample': evaluatedString
+                },
+                {
+                    name: 'param2',
+                    'x-ample': evaluatedString
+                }
+            ]);
+            expect(exampleHandler.client.swaggerObject.parameters.param1).to.eql({'x-ample': evaluatedString});
+        });
+    });
+
+    it('should eval example', function () {
+        let responseMock = {
+            headers: {
+                header1: 'foo'
+            },
+            obj: {
+                field2: 'bar'
+            }
+        };
+
+        let result = exampleHandler.eval(responseMock, '[${headers.header1}:${obj.field2}]');
+
+        expect(result).to.eql('[foo:bar]');
     });
 });

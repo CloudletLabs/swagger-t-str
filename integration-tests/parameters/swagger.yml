@@ -8,15 +8,31 @@ consumes:
 produces:
   - application/json
 
+parameters:
+  username:
+    description: Username
+    in: path
+    name: username
+    required: true
+    type: string
+
 paths:
+  /user:
+    get:
+      description: Get current user
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should return a user
+              paramProviderFor:
+                username: '${obj.username}'
+              response:
+                obj:
+                  username: 'usernameFromGet'
   '/user/{username}':
     parameters:
-      - description: Username
-        in: path
-        name: username
-        required: true
-        type: string
-        x-ample: usernameInPath
+      - '$ref': '#/parameters/username'
     get:
       description: Get user
       responses:
@@ -24,27 +40,17 @@ paths:
           description: OK
           x-amples:
             - description: should return user
-    put:
-      description: Update user
+    delete:
+      description: Delete user
       parameters:
-        - description: Username
-          in: path
-          name: username
-          required: true
-          type: string
+        - '$ref': '#/parameters/username'
           x-ample: usernameInMethod
       responses:
         '200':
           description: OK
           x-amples:
-            - description: should update user
-    delete:
-      description: Delete user
-      responses:
-        '200':
-          description: OK
-          x-amples:
             - description: should delete user
+            - description: should delete another user
               request:
                 parameters:
                   username: usernameInExample

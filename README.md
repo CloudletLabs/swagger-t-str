@@ -199,13 +199,63 @@ You need to enable `auth: true` for your example,
  so if it is not explicitly enabled, we will get a test failure.
 Instead of `auth: true` it could be an object, same as `x-ample` in the security definitions.
 
-Sometimes it is handy to save auth data from specific response and use it for other requests.
+```yaml
+securityDefinitions:
+  Basic:
+    type: basic
+    description: Password auth
+    x-ample:
+      username: foo
+      password: bar
+  Bearer:
+    type: apiKey
+    description: Token auth
+    in: header
+    name: Authorization
+    x-ample: Bearer baz
+
+paths:
+  /auth_token:
+    post:
+      description: Get auth token for username+password pair
+      security:
+        - Basic: []
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should return auth token
+              auth: true # here is we enabling auth for this specific sample
+        '401': # no auth set to true (because in fact no x-amples defined) - will not set headers
+          description: Unauthorized
+  '/users':
+    get:
+      description: Get users
+      security:
+        - Basic: []
+        - Bearer: []
+      responses:
+        '200':
+          description: List of users
+          x-amples:
+            - description: should return the list of users
+              auth: # we still need to tell that we want this example to be authenticated - true or object
+                Basic: # Define specific credentials for this particular example
+                  username: foo1
+                  password: baz1
+        '401':
+          description: Unauthorized
+```
+
+# Dispatching from responses
+
+Sometimes it is handy to save some data from specific response and use it for other requests.
 For instance, we have `POST /auth_token` endpoint with `Basic` auth,
  that is returns simple JSON `{ "auth_token": "abc" }`. And we want to use this token later for other requests.
-To achieve that you can use `authProviderFor` in a given example,
- that will define an `x-ample` for a given `securityDefinitions`.
+Additionally we want to remove this token later, so we also need remember it as a parameter.
+To achieve that you can use `authProviderFor` and `paramProviderFor` in a given example,
+ that will define an `x-ample` for a given `securityDefinitions` or `parameters`.
 There is `obj` and `headers` available in the context of `x-ample` string.
-In the example below you can find how to achieve this:
 
 ```yaml
 securityDefinitions:
@@ -220,6 +270,14 @@ securityDefinitions:
     description: Token auth
     in: header
     name: Authorization
+
+parameters: # As we getting token and deleting it in different scopes, we need to define this parameter globally
+  token:
+    description: Auth Token
+    in: path
+    name: token
+    required: true
+    type: string
 
 paths:
   /auth_token:
@@ -236,14 +294,18 @@ paths:
               authProviderFor: # define this sample to be a provider for the given auth definitions
                 Bearer:
                   x-ample: 'Bearer ${obj.auth_token}' # define how resulting auth example should looks like
-              response:
-                obj:
-                  auth_token: 'abc'
-        '401': # no auth set to true (because in fact no x-amples defined) - will not set headers
+              paramProviderFor: # define this sample to be a provider for the given parameters
+                token:
+                  x-ample: 'Bearer ${obj.auth_token}' # define how resulting param example should looks like
+        '401': # no auth (in fact, no x-amples defined) - will not set headers
           description: Unauthorized
-  '/users':
-    get:
-      description: Get users
+  '/auth_token/{token}':
+    parameters: # Define token parameter for this route
+      # if not overridden anywhere inside this scope - global `x-ample` will be used,
+      # which is in fact already set in provider
+      - '$ref': '#/parameters/token'
+    delete:
+      description: Delete token
       security:
         - Basic: []
         - Bearer: []
@@ -251,9 +313,9 @@ paths:
         '200':
           description: List of users
           x-amples:
-            - description: should return the list of users
+            - description: should delete token
               auth: # we still need to tell that we want this example to be authenticated
-                Basic:
+                Basic: # instead of `true` defining an object to override `x-ample`
                   username: foo1
                   password: baz1
         '401':

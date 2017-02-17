@@ -1,6 +1,7 @@
 ## 1.1.2
 
 - Make it possible to define auth credentials per example (#7)
+- Sample can be a parameters provider (#8)
 
 ## 1.1.0
 
