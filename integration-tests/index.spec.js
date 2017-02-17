@@ -1,34 +1,40 @@
 'use strict';
 
 let path = require('path');
-let swaggerServer = require('swagger-server');
+let fs = require('fs');
+let express = require('express');
+let app = express();
+
 let STS = require('../');
 
-let server = swaggerServer(path.join(__dirname, './swagger.yml'));
+app.get('/api/status', function (req, res) {
+    res.status(200).send();
+});
+app.get('/api/info', function (req, res) {
+    if (req.header('Authorization') != 'Basic cXdlOnF3ZQ==') return res.status(401).send('Unauthorized');
+    res.status(200).json({version: '1.1'});
+});
+app.post('/api/auth_token', function (req, res) {
+    if (req.header('Authorization') != 'Basic qwe') return res.status(401).send('Unauthorized');
+    res.status(200).json({auth_token: 'abc'});
+});
+app.put('/api/auth_token/:token', function (req, res) {
+    if (req.header('Authorization') != 'Bearer abc') return res.status(401).send('Unauthorized');
+    if (req.params.token != 'abc') return res.status(500).send('Internal app error');
+    res.status(200).json({auth_token: 'xyz'});
+});
+app.delete('/api/auth_token/:token', function (req, res) {
+    if (req.header('Authorization') != 'Bearer xyz') return res.status(401).send('Unauthorized');
+    if (req.params.token != 'xyz') return res.status(500).send('Internal app error');
+    res.status(200).send();
+});
 
-server.start(8081, {}, function(err, app) {
+let server = app.listen(8081, function() {
     console.log('Your REST API is now running at http://localhost:8081');
 
-    server.mockDataStore.createResource('/api/info', '/api/info', {version: '1.1'});
-    server.post('/auth_token', function (req, res, next) {
-        if (req.header('Authorization') != 'Basic qwe') return res.status(401).send('Unauthorized');
-        res.status(200).json({auth_token: 'abc'});
-    });
-    server.delete('/auth_token/{token}', function (req, res, next) {
-        if (req.header('Authorization') != 'Bearer abc') return res.status(401).send('Unauthorized');
-        if (req.swagger.params.token != 'xyz') return res.status(500).send('Internal server error');
-        res.status(200).send();
-    });
-
-    let program = {
-        protocol: 'http',
-        host: 'localhost',
-        port: '8081',
-        spec: './integration-tests/swagger.yml'
-    };
-    let sts = new STS(program);
+    let sts = new STS('http://localhost:8081', './integration-tests/swagger.yml');
     sts.start(function(failures){
-        app.close();
+        server.close();
         process.exit(failures);
     });
 });

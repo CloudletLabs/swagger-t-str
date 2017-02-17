@@ -1,6 +1,6 @@
 {
   "name": "swagger-t-str",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "Specification-Driven test framework",
   "main": "index.js",
   "bin": {
@@ -36,7 +36,7 @@
     "mocha": "3.x.x",
     "chai": "3.x.x",
     "chai-subset": "1.x.x",
-    "preq": "0.x.x",
+    "swagger-client": "2.x.x",
     "swagger-tools": "0.x.x"
   },
   "devDependencies": {
@@ -46,7 +46,7 @@
     "sinon-chai": "2.x.x",
     "istanbul": "0.x.x",
     "nyc": "10.x.x",
-    "swagger-server": "0.x.x"
+    "express": "4.x.x"
   },
   "repository": {
     "type": "git",

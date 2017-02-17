@@ -15,6 +15,12 @@ securityDefinitions:
   Basic:
     type: basic
     description: Password auth
+    x-ample:
+      username: qwe
+      password: qwe
+  BasicHeader:
+    type: basic
+    description: Password auth setting header directly
     x-ample: Basic qwe
   Bearer:
     type: apiKey
@@ -50,6 +56,8 @@ paths:
   /info:
     get:
       description: Get service info
+      security:
+        - Basic: []
       responses:
         '200':
           description: OK
@@ -57,14 +65,15 @@ paths:
             $ref: '#/definitions/infoo'
           x-amples:
             - description: should return info object
+              auth: true
               response:
-                body:
+                obj:
                   version: '1.1'
   /auth_token:
     post:
       description: Get auth token for username+password pair
       security:
-        - Basic: []
+        - BasicHeader: []
       responses:
         '200':
           description: OK
@@ -75,23 +84,44 @@ paths:
               auth: true
               authProviderFor:
                 Bearer:
-                  x-ample: 'Bearer ${body.auth_token}'
+                  x-ample: 'Bearer ${obj.auth_token}'
               response:
-                body:
+                obj:
                   auth_token: 'abc'
         '401':
           description: Unauthorized
   '/auth_token/{token}':
+    parameters:
+      - description: Token
+        in: path
+        name: token
+        required: true
+        type: string
+        x-ample: qwe
+    put:
+      description: Update token
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should update token
+              auth: true
+              authProviderFor:
+                Bearer:
+                  x-ample: 'Bearer ${obj.auth_token}'
+              request:
+                parameters:
+                  token: abc
+                obj:
+                  auth_token: xyz
+        '401':
+          description: Unauthorized
     delete:
       description: Delete token
       security:
         - Bearer: []
-      parameters:
-        - description: Token
-          in: path
-          name: token
-          required: true
-          type: string
       responses:
         '200':
           description: OK

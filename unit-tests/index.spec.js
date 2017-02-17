@@ -2,12 +2,13 @@
 
 let sinon = require('sinon');
 let chai = require('chai');
-let sinonChai = require('sinon-chai');
 let expect = chai.expect;
+let sinonChai = require('sinon-chai');
 chai.use(sinonChai);
 let proxyquire = require('proxyquire');
 
 describe('The index module', function() {
+    //noinspection JSUnresolvedVariable
     let sandbox = sinon.sandbox.create();
 
     afterEach(function () {

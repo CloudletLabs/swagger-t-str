@@ -1,8 +1,8 @@
 'use strict';
 
+let sinon = require('sinon');
 let chai = require('chai');
 let expect = chai.expect;
-let sinon = require('sinon');
 let chaiAsPromised = require("chai-as-promised");
 chai.use(chaiAsPromised);
 let sinonChai = require('sinon-chai');
@@ -18,7 +18,6 @@ describe('STSSchemaValidator module', function() {
 
     beforeEach(function () {
         swaggerToolsStub = sandbox.stub();
-
         specStub = sandbox.stub();
 
         STSSchemaValidator = proxyquire('../../lib/STSSchemaValidator', {
@@ -35,7 +34,46 @@ describe('STSSchemaValidator module', function() {
         expect(schemaValidator.spec).to.equals(specStub);
     });
 
-    describe('validate swagger schema', function () {
+    it('should validate response', function () {
+        let specResponseMock = {};
+        schemaValidator.spec = {
+            paths: {
+                '/foo': {
+                    'bar': {
+                        responses: {
+                            'baz': specResponseMock
+                        }
+                    }
+                }
+            }
+        };
+        let operationMock = {
+            path: '/foo',
+            method: 'bar'
+        };
+        let responseMock = null;
+        let promiseStub = sandbox.stub();
+        let getValidatorStub = sandbox.stub(schemaValidator, 'getValidator').returns(promiseStub);
+
+        schemaValidator.validate(operationMock, 'baz', responseMock);
+
+        specResponseMock.schema = {};
+        schemaValidator.validate(operationMock, 'baz', responseMock);
+
+        specResponseMock.schema['$ref'] = sandbox.stub();
+        schemaValidator.validate(operationMock, 'baz', responseMock);
+
+        responseMock = {};
+        schemaValidator.validate(operationMock, 'baz', responseMock);
+
+        responseMock.obj = sandbox.stub();
+        let promise = schemaValidator.validate(operationMock, 'baz', responseMock);
+        expect(getValidatorStub).to.calledOnce;
+        expect(getValidatorStub).to.calledWithExactly(specResponseMock.schema['$ref'], responseMock.obj);
+        expect(promise).to.equals(promiseStub);
+    });
+
+    describe('validator', function () {
         let refStub,
             bodyStub;
 
@@ -57,7 +95,7 @@ describe('STSSchemaValidator module', function() {
         it('should validate', function () {
             swaggerToolsStub.validateModel.callsArg(3);
 
-            let promise = schemaValidator.validate(refStub, bodyStub);
+            let promise = schemaValidator.getValidator(refStub, bodyStub);
 
             commonTest(promise);
 
@@ -68,7 +106,7 @@ describe('STSSchemaValidator module', function() {
             let errorMock = new Error('test error');
             swaggerToolsStub.validateModel.callsArgWith(3, errorMock);
 
-            let promise = schemaValidator.validate(refStub, bodyStub);
+            let promise = schemaValidator.getValidator(refStub, bodyStub);
 
             commonTest(promise);
 
@@ -90,7 +128,7 @@ describe('STSSchemaValidator module', function() {
             };
             swaggerToolsStub.validateModel.callsArgWith(3, null, resultMock);
 
-            let promise = schemaValidator.validate(refStub, bodyStub);
+            let promise = schemaValidator.getValidator(refStub, bodyStub);
 
             commonTest(promise);
 

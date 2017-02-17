@@ -1,59 +1,49 @@
 'use strict';
 
+let sinon = require('sinon');
 let chai = require('chai');
 let expect = chai.expect;
-let sinon = require('sinon');
 let sinonChai = require('sinon-chai');
 chai.use(sinonChai);
 let proxyquire = require('proxyquire');
 
 describe('STSExampleHandler module', function() {
+    //noinspection JSUnresolvedVariable
     let sandbox = sinon.sandbox.create();
-    let preqStub,
-        chaiStub,
+    let chaiStub,
         chaiSubsetStub,
         specStub,
+        clientStub,
+        authHelper,
+        schemaValidatorSpy,
         schemaValidatorMock,
-        specPathStub,
-        specMethodStub,
-        specCodeStub,
-        exampleMock,
         STSExampleHandler,
         exampleHandler;
 
     beforeEach(function () {
-        preqStub = sandbox.stub();
-
         chaiStub = sandbox.stub();
         chaiStub.use = sandbox.stub();
         chaiSubsetStub = sandbox.stub();
 
         specStub = sandbox.stub();
+        clientStub = sandbox.stub();
 
-        schemaValidatorMock = function (spec) {
-            this.spec = spec;
-        };
+        authHelper = sandbox.stub();
+        authHelper.parse = sandbox.stub().returns(authHelper);
 
-        exampleMock = {
-            specPath: sandbox.stub(),
-            specMethod: sandbox.stub(),
-            specCode: sandbox.stub()
+        schemaValidatorSpy = sandbox.spy();
+        schemaValidatorMock = function () {
+            //noinspection JSCheckFunctionSignatures
+            schemaValidatorSpy.apply(this, arguments);
         };
-        specStub.paths = sandbox.stub();
-        specPathStub = specStub.paths[exampleMock.specPath] = sandbox.stub();
-        specMethodStub = specStub.paths[exampleMock.specPath][exampleMock.specMethod] = sandbox.stub();
-        specStub.paths[exampleMock.specPath][exampleMock.specMethod].responses = sandbox.stub();
-        specCodeStub =
-            specStub.paths[exampleMock.specPath][exampleMock.specMethod].responses[exampleMock.specCode] =
-                sandbox.stub();
 
         STSExampleHandler = proxyquire('../../lib/STSExampleHandler', {
-            'preq': preqStub,
             'chai': chaiStub,
             'chai-subset': chaiSubsetStub,
+            './STSAuthHelper': authHelper,
             './STSSchemaValidator': schemaValidatorMock
         });
-        exampleHandler = new STSExampleHandler(specStub);
+        exampleHandler = new STSExampleHandler(specStub, clientStub);
     });
 
     afterEach(function () {
@@ -61,184 +51,121 @@ describe('STSExampleHandler module', function() {
     });
 
     it('should configure chai', function () {
-        expect(chaiStub.use).to.have.been.calledWithExactly(chaiSubsetStub);
+        expect(chaiStub.use).to.calledWithExactly(chaiSubsetStub);
     });
 
     it('should construct STSExampleHandler', function () {
-        expect(exampleHandler.spec).to.equals(specStub);
-        expect(exampleHandler.schemaValidator.spec).to.equals(specStub);
+        expect(exampleHandler.client).to.equals(clientStub);
+        expect(authHelper.parse).to.calledWithExactly(clientStub);
+        expect(exampleHandler.clientAuthorizations).to.equals(authHelper);
+        expect(schemaValidatorSpy).to.calledWithExactly(specStub);
+        expect(exampleHandler.schemaValidator).to.be.an.instanceof(schemaValidatorMock);
     });
 
-    it('should handle given example', function () {
-        let exampleStub = sandbox.stub();
-        exampleStub.request = sandbox.stub();
-        exampleStub.request.method = sandbox.stub();
-        let substituteUrlParametersStub = sandbox.stub(exampleHandler, 'substituteUrlParameters');
-        let addAuthStub = sandbox.stub(exampleHandler, 'addAuth');
-        let validatorStub = sandbox.stub(exampleHandler, 'getValidator');
-        validatorStub.returns(validatorStub);
-        preqStub[exampleStub.request.method] = sandbox.stub().returns(preqStub);
-        preqStub.then = sandbox.stub().returns(preqStub);
+    describe('handling example', function () {
+        let operationStub,
+            exampleStub,
+            responseCodeStub,
+            normalizedExampleStub,
+            normalizeExampleStub,
+            validatorStub,
+            getValidatorStub,
+            requestStub,
+            buildRequestStub,
+            promiseStub;
 
-        exampleHandler.handle(exampleStub);
-
-        expect(substituteUrlParametersStub).to.have.been.calledWithExactly(exampleStub);
-        expect(addAuthStub).to.have.been.calledWithExactly(exampleStub);
-        expect(validatorStub).to.have.been.calledWithExactly(exampleStub);
-        expect(preqStub[exampleStub.request.method]).to.have.been.calledWithExactly(exampleStub.request);
-        expect(preqStub.then).to.have.been.calledWithExactly(validatorStub, validatorStub);
-    });
-
-    describe('substitute parameters in url', function () {
         beforeEach(function () {
-            exampleMock.request = {};
+            operationStub = sandbox.stub();
+            operationStub.nickname = 'foo';
+            exampleStub = sandbox.stub();
+            responseCodeStub = sandbox.stub();
+            normalizedExampleStub = sandbox.stub();
+            normalizeExampleStub = sandbox.stub(exampleHandler, 'normalizeExample').returns(normalizedExampleStub);
+            validatorStub = sandbox.stub();
+            getValidatorStub = sandbox.stub(exampleHandler, 'getValidator').returns(validatorStub);
+            requestStub = sandbox.stub();
+            buildRequestStub = sandbox.stub(exampleHandler, 'buildRequest').returns(requestStub);
+            promiseStub = sandbox.stub();
+            promiseStub.then = sandbox.stub();
+            exampleHandler.client = {
+                default: {
+                    foo: sandbox.stub().returns(promiseStub)
+                }
+            };
         });
 
-        it ('should do nothing on null spec parameters', function () {
-            exampleHandler.substituteUrlParameters(exampleMock);
+        let commonTests = function () {
+            expect(normalizeExampleStub).to.calledWithExactly(responseCodeStub, exampleStub);
+            expect(getValidatorStub).to.calledWithExactly(operationStub, responseCodeStub, normalizedExampleStub);
+            expect(buildRequestStub).to.calledWithExactly(operationStub, normalizedExampleStub);
+            expect(promiseStub.then).to.calledWithExactly(validatorStub, validatorStub);
+        };
+
+        it('should handle example without auth', function () {
+            exampleHandler.handle(operationStub, responseCodeStub, exampleStub);
+            commonTests();
+            expect(exampleHandler.client.default.foo).to.calledWithExactly(requestStub, null);
         });
 
-        it ('should do nothing on null request parameters', function () {
-            specMethodStub.parameters = [];
-            exampleHandler.substituteUrlParameters(exampleMock);
+        it('should handle example with auth', function () {
+            normalizedExampleStub.auth = true;
+            exampleHandler.clientAuthorizations = sandbox.stub();
+            exampleHandler.handle(operationStub, responseCodeStub, exampleStub);
+            commonTests();
+            expect(exampleHandler.client.default.foo).to.calledWithExactly(requestStub,
+                { clientAuthorizations: exampleHandler.clientAuthorizations });
+        });
+    });
+
+    describe('example normalization', function () {
+        let exampleMock;
+
+        beforeEach(function () {
+            exampleMock = {};
         });
 
-        it ('should do nothing on empty spec parameters', function () {
-            specMethodStub.parameters = [];
-            exampleMock.request.parameters = {};
-            exampleHandler.substituteUrlParameters(exampleMock);
-        });
-
-        it ('should do nothing on fake `in` parameter', function () {
-            specMethodStub.parameters = [ { in: 'fake' } ];
-            exampleMock.request.parameters = {};
-            exampleHandler.substituteUrlParameters(exampleMock);
-        });
-
-        it ('should do nothing on missing path parameter in request', function () {
-            specMethodStub.parameters = [ { in: 'path', name: 'fake' } ];
-            exampleMock.request.parameters = {};
-            exampleHandler.substituteUrlParameters(exampleMock);
-        });
-
-        it ('should substitute', function () {
-            specMethodStub.parameters = [
-                {
-                    in: 'path',
-                    name: 'param1'
+        it('should normalize empty example', function () {
+            let normalized = exampleHandler.normalizeExample('200', exampleMock);
+            expect(normalized).not.equals(exampleMock);
+            expect(normalized).to.eql({
+                request: {
+                    headers: {},
+                    parameters: {}
                 },
-                {
-                    in: 'path',
-                    name: 'param2'
+                response: {
+                    status: 200
                 }
-            ];
-            exampleMock.request.uri = 'http://localhost/foo/{param1}/{param2}';
-            exampleMock.request.parameters = {
-                param1: 'bar',
-                param2: 'baz'
-            };
-
-            exampleHandler.substituteUrlParameters(exampleMock);
-
-            expect(exampleMock.request.uri).to.eql('http://localhost/foo/bar/baz');
-            expect(exampleMock.request.parameters).not.to.have.property('param1');
-            expect(exampleMock.request.parameters).not.to.have.property('param2');
-        });
-    });
-
-    describe('add auth', function () {
-        beforeEach(function () {
-            exampleMock.request = {};
+            });
         });
 
-        it('should do nothing when not example.auth', function () {
-            exampleHandler.addAuth(exampleMock);
-            exampleMock.auth = false;
-            exampleHandler.addAuth(exampleMock);
-        });
-
-        it('should do nothing when x-ample not defined', function () {
-            exampleHandler.spec.securityDefinitions = {
-                Test: {}
-            };
-            exampleMock.auth = true;
-            specMethodStub.security = [
-                {
-                    Test: []
-                }
-            ];
-
-            exampleHandler.addAuth(exampleMock);
-        });
-
-        it('should do nothing when non-basic non-header', function () {
-            exampleHandler.spec.securityDefinitions = {
-                Test: {
-                    type: 'foo',
-                    in: 'bar',
-                    'x-ample': 'baz'
+        it('should normalize example', function () {
+            exampleMock = {
+                foo: {},
+                request: {
+                    headers: {
+                        bar: {}
+                    },
+                    parameters: {
+                        baz: {}
+                    }
+                },
+                response: {
+                    status: 300,
+                    abc: {}
                 }
             };
-            exampleMock.auth = true;
-            specMethodStub.security = [
-                {
-                    Test: []
-                }
-            ];
-
-            exampleHandler.addAuth(exampleMock);
-        });
-
-        it('should add basic auth', function () {
-            exampleHandler.spec.securityDefinitions = {
-                Basic: {
-                    type: 'basic',
-                    'x-ample': 'test basic'
-                }
-            };
-            exampleMock.auth = true;
-            exampleMock.request = {
-                headers: {}
-            };
-            specMethodStub.security = [
-                {
-                    Basic: []
-                }
-            ];
-
-            exampleHandler.addAuth(exampleMock);
-
-            expect(exampleMock.request.headers).to.eql({ Authorization: 'test basic' });
-        });
-
-        it('should add token auth', function () {
-            exampleHandler.spec.securityDefinitions = {
-                Basic: {
-                    type: 'foo',
-                    in: 'header',
-                    name: 'Bar',
-                    'x-ample': 'test foo bar'
-                }
-            };
-            exampleMock.auth = true;
-            exampleMock.request = {
-                headers: {}
-            };
-            specMethodStub.security = [
-                {
-                    Basic: []
-                }
-            ];
-
-            exampleHandler.addAuth(exampleMock);
-
-            expect(exampleMock.request.headers).to.eql({ Bar: 'test foo bar' });
+            let normalized = exampleHandler.normalizeExample('200', exampleMock);
+            expect(normalized).not.equals(exampleMock);
+            expect(normalized).to.eql(exampleMock);
         });
     });
 
     it('should get validator', function () {
+        let operationStub = sandbox.stub();
+        let responseCodeStub = sandbox.stub();
         let exampleStub = sandbox.stub();
-        let validator = exampleHandler.getValidator(exampleStub);
+
+        let validator = exampleHandler.getValidator(operationStub, responseCodeStub, exampleStub);
         expect(validator).to.be.a('function');
 
         let respStub = sandbox.stub();
@@ -246,95 +173,127 @@ describe('STSExampleHandler module', function() {
         let doValidateStub = sandbox.stub(exampleHandler, 'doValidate').returns(promiseStub);
         let promise = validator(respStub);
         expect(promise).to.equals(promiseStub);
-        expect(doValidateStub).to.have.been.calledWithExactly(exampleStub, respStub);
+        expect(doValidateStub).to.calledWithExactly(operationStub, responseCodeStub, exampleStub, respStub);
     });
 
-    describe('validating response', function () {
-        let responseStub;
-
-        beforeEach(function () {
-            exampleMock.response = sandbox.stub();
-            responseStub = sandbox.stub();
-
-            chaiStub.expect = sandbox.stub().returns(chaiStub);
-            chaiStub.to = chaiStub;
-            chaiStub.containSubset = sandbox.stub().returns(chaiStub);
-        });
-
-        let commonTest = function (promise) {
-            expect(promise).to.be.undefined;
-            expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
-            expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleMock.response);
+    it('should build request', function () {
+        let operationStub = sandbox.stub();
+        let exampleMock = {
+            request: {
+                headers: {
+                    foo2: 'hed',
+                    foo3: 'hed',
+                    body: 'hed'
+                },
+                parameters: {
+                    foo3: 'param',
+                    body: 'param'
+                },
+                body: 'body'
+            }
         };
+        let requestMock = {
+            foo1: 'req',
+            foo2: 'req',
+            foo3: 'req',
+            body: 'req'
+        };
+        let buildDefaultRequestStub = sandbox.stub(exampleHandler, 'buildDefaultRequest').returns(requestMock);
 
-        it('should validate', function () {
-            commonTest(exampleHandler.doValidate(exampleMock, responseStub));
+        let request = exampleHandler.buildRequest(operationStub, exampleMock);
+        expect(buildDefaultRequestStub).to.calledWithExactly(operationStub);
+        expect(request).to.eql({
+            foo1: 'req',
+            foo2: 'hed',
+            foo3: 'param',
+            body: 'body'
+        });
+    });
+    
+    describe('building default request', function () {
+        it('should build request for empty parameters', function () {
+            expect(exampleHandler.buildDefaultRequest({})).to.eql({});
         });
 
-        it('should validate with authProviderFor', function () {
-            exampleMock.authProviderFor = sandbox.stub();
-            let dispatchAuthStub = sandbox.stub(exampleHandler, 'dispatchAuth');
+        it('should build request for given parameters', function () {
+            let operationMock = {
+                parameters: [
+                    {
+                        name: 'foo'
+                    },
+                    {
+                        name: 'bar',
+                        'x-ample': 'example'
+                    }
+                ]
+            };
 
-            commonTest(exampleHandler.doValidate(exampleMock, responseStub));
-            expect(dispatchAuthStub).to.have.been.calledWithExactly(exampleMock.authProviderFor, responseStub);
-        });
-
-        it('should validate with no $ref', function () {
-            specCodeStub.schema = sandbox.stub();
-            commonTest(exampleHandler.doValidate(exampleMock, responseStub));
-        });
-
-        it('should validate with no body', function () {
-            specCodeStub.schema = sandbox.stub();
-            specCodeStub.schema['$ref'] = sandbox.stub();
-            commonTest(exampleHandler.doValidate(exampleMock, responseStub));
-        });
-
-        it('should validate with schema', function () {
-            specCodeStub.schema = sandbox.stub();
-            specCodeStub.schema['$ref'] = sandbox.stub();
-            responseStub.body = sandbox.stub();
-            let promiseStub = sandbox.stub();
-            schemaValidatorMock.prototype.validate = sandbox.stub().returns(promiseStub);
-
-            let promise = exampleHandler.doValidate(exampleMock, responseStub);
-
-            expect(chaiStub.expect).to.have.been.calledWithExactly(responseStub);
-            expect(chaiStub.containSubset).to.have.been.calledWithExactly(exampleMock.response);
-            expect(schemaValidatorMock.prototype.validate).to.have.been.calledWithExactly(
-                specCodeStub.schema['$ref'], responseStub.body);
-            expect(promise).to.equals(promiseStub);
+            expect(exampleHandler.buildDefaultRequest(operationMock)).to.eql({
+                bar: 'example'
+            });
         });
     });
 
-    it('should dispatch auth from response', function () {
-        exampleHandler.spec.securityDefinitions = {
-            strategy2: {},
-            strategy3: {}
-        };
-        let exampleStrategiesMock = {
-            strategy1: {},
-            strategy2: {},
-            strategy3: {
-                'x-ample': '[${headers.header1}:${body.field2}]'
-            }
-        };
-        let responseMock = {
-            headers: {
-                header1: 'value1'
-            },
-            body: {
-                field2: 'value2'
-            }
-        };
+    it('should validate response', function () {
+        let operationStub = sandbox.stub();
+        let responseCodeStub = sandbox.stub();
+        let exampleStub = sandbox.stub();
+        exampleStub.response = sandbox.stub();
+        let responseStub = sandbox.stub();
+        chaiStub.expect = sandbox.stub().returns(chaiStub);
+        chaiStub.to = chaiStub;
+        chaiStub.containSubset = sandbox.stub().returns(chaiStub);
+        let dispatchAuthStub = sandbox.stub(exampleHandler, 'dispatchAuth');
+        let promiseStub = sandbox.stub();
+        schemaValidatorMock.prototype.validate = sandbox.stub().returns(promiseStub);
 
-        exampleHandler.dispatchAuth(exampleStrategiesMock, responseMock);
+        let promise = exampleHandler.doValidate(operationStub, responseCodeStub, exampleStub, responseStub);
 
-        expect(exampleHandler.spec.securityDefinitions).to.eql({
-            strategy2: {},
-            strategy3: {
-                'x-ample': '[value1:value2]'
-            }
+        expect(chaiStub.expect).to.calledWithExactly(responseStub);
+        expect(chaiStub.containSubset).to.calledWithExactly(exampleStub.response);
+        expect(dispatchAuthStub).to.calledWithExactly(exampleStub, responseStub);
+        expect(schemaValidatorMock.prototype.validate).to.calledWithExactly(
+            operationStub, responseCodeStub, responseStub);
+        expect(promise).to.equals(promiseStub);
+    });
+
+    describe('dispatching auth from response', function () {
+        it('should do nothing on empty authProviderFor', function () {
+            exampleHandler.dispatchAuth({});
+        });
+
+        it('should dispatch auth from response', function () {
+            exampleHandler.client = sandbox.stub();
+            exampleHandler.client.securityDefinitions = {
+                strategy2: {},
+                strategy3: {}
+            };
+            let example = {
+                authProviderFor: {
+                    strategy1: {},
+                    strategy2: {},
+                    strategy3: {
+                        'x-ample': '[${headers.header1}:${obj.field2}]'
+                    }
+                }
+            };
+            let responseMock = {
+                headers: {
+                    header1: 'value1'
+                },
+                obj: {
+                    field2: 'value2'
+                }
+            };
+            exampleHandler.clientAuthorizations = sandbox.stub();
+            authHelper.add = sandbox.stub();
+
+            exampleHandler.dispatchAuth(example, responseMock);
+
+            expect(authHelper.add).to.calledOnce;
+            expect(authHelper.add).to.calledWithExactly(exampleHandler.client, exampleHandler.clientAuthorizations,
+                'strategy3', '[value1:value2]'
+            );
         });
     });
 });
