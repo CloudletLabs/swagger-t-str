@@ -78,11 +78,11 @@ Output:
       ✓ 200: should return info object
 ```
 
+# Building requests
+
 For pretty much everything it is [swagger-client](https://www.npmjs.com/package/swagger-client) used under the hood.
 To understand how we building a suites and requests,
  first let's take a look at the example from `swagger-client` README:
-
-# Building requests
 
 ```js
 var Swagger = require('swagger-client');
