@@ -1,3 +1,7 @@
+## 1.1.0
+
+- Massive refactoring, switching to [swagger-client](https://www.npmjs.com/package/swagger-client)
+
 ## 1.0.9
 
 - Fix a bug causing swagger-tools to fail validating schema because of circular structures in JSON

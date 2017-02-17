@@ -1,0 +1,81 @@
+swagger: '2.0'
+info:
+  title: security
+  version: '1'
+basePath: /api
+consumes:
+  - application/json
+produces:
+  - application/json
+
+securityDefinitions:
+  Basic:
+    type: basic
+    description: Password auth
+    x-ample:
+      username: basicUsername
+      password: basicPassword
+  BasicHeader:
+    type: basic
+    description: Password auth setting header directly
+  Bearer:
+    type: apiKey
+    description: Token auth
+    in: header
+    name: AuthToken
+
+paths:
+  /auth_token:
+    post:
+      description: Get auth token for username+password pair
+      security:
+        - Basic: []
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should return auth token
+              auth: true
+              authProviderFor:
+                BasicHeader:
+                  x-ample: 'Basic ${headers.auth}'
+                Bearer:
+                  x-ample: 'Bearer ${obj.auth_token}'
+              response:
+                headers:
+                  auth: 'header'
+                obj:
+                  auth_token: 'token_1'
+        '401':
+          description: Unauthorized
+    put:
+      description: Update token
+      security:
+        - BasicHeader: []
+        - Bearer: []
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should update token
+              auth: true
+              authProviderFor:
+                Bearer:
+                  x-ample: 'Bearer ${obj.auth_token}'
+              request:
+                obj:
+                  auth_token: token_2
+        '401':
+          description: Unauthorized
+    delete:
+      description: Delete token
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: OK
+          x-amples:
+            - description: should delete token
+              auth: true
+        '401':
+          description: Unauthorized

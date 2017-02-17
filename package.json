@@ -1,6 +1,6 @@
 {
   "name": "swagger-t-str",
-  "version": "1.0.10",
+  "version": "1.1.0",
   "description": "Specification-Driven test framework",
   "main": "index.js",
   "bin": {
@@ -27,8 +27,8 @@
   "scripts": {
     "test": "npm run test-unit && npm run test-integration",
     "test-unit": "nyc npm run test-unit-only",
-    "test-unit-only": "NODE_ENV=test mocha './unit-tests/**/*.spec.js'",
-    "test-integration": "NODE_ENV=test node './integration-tests/index.spec.js'"
+    "test-unit-only": "NODE_ENV=test _mocha './unit-tests/**/*.spec.js'",
+    "test-integration": "NODE_ENV=test _mocha './integration-tests/index.spec.js'"
   },
   "dependencies": {
     "commander": "2.x.x",
@@ -36,7 +36,7 @@
     "mocha": "3.x.x",
     "chai": "3.x.x",
     "chai-subset": "1.x.x",
-    "preq": "0.x.x",
+    "swagger-client": "2.x.x",
     "swagger-tools": "0.x.x"
   },
   "devDependencies": {
@@ -46,7 +46,7 @@
     "sinon-chai": "2.x.x",
     "istanbul": "0.x.x",
     "nyc": "10.x.x",
-    "swagger-server": "0.x.x"
+    "express": "4.x.x"
   },
   "repository": {
     "type": "git",
@@ -58,7 +58,11 @@
     "tests",
     "tdd",
     "bdd",
-    "api"
+    "api",
+    "spec",
+    "specification",
+    "driven",
+    "development"
   ],
   "author": "Dmytro Kryvenko",
   "license": "MIT",

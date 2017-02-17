@@ -1,35 +1,35 @@
 'use strict';
 
-let path = require('path');
-let swaggerServer = require('swagger-server');
+let chai = require('chai');
+let expect = chai.expect;
+let chaiAsPromised = require("chai-as-promised");
+chai.use(chaiAsPromised);
+
+let express = require('express');
+
 let STS = require('../');
 
-let server = swaggerServer(path.join(__dirname, './swagger.yml'));
+let suites = ['sanity', 'security', 'parameters', 'failResponse', 'failSchema'];
 
-server.start(8081, {}, function(err, app) {
-    console.log('Your REST API is now running at http://localhost:8081');
+let startServer = function (name, app) {
+    return new Promise(function (resolve) {
+        let server = app.listen(8081, function() {
+            let sts = new STS('http://localhost:8081', `./integration-tests/${name}/swagger.yml`);
+            sts.start(function(failures){
+                server.close();
+                resolve(failures);
+            });
+        });
+    });
+};
 
-    server.mockDataStore.createResource('/api/info', '/api/info', {version: '1.1'});
-    server.post('/auth_token', function (req, res, next) {
-        if (req.header('Authorization') != 'Basic qwe') return res.status(401).send('Unauthorized');
-        res.status(200).json({auth_token: 'abc'});
-    });
-    server.delete('/auth_token/{token}', function (req, res, next) {
-        if (req.header('Authorization') != 'Bearer abc') return res.status(401).send('Unauthorized');
-        if (req.swagger.params.token != 'xyz') return res.status(500).send('Internal server error');
-        res.status(200).send();
-    });
-
-    let program = {
-        protocol: 'http',
-        host: 'localhost',
-        port: '8081',
-        spec: './integration-tests/swagger.yml'
-    };
-    let sts = new STS(program);
-    sts.start(function(failures){
-        app.close();
-        process.exit(failures);
-    });
+describe('Integration testing', function () {
+    for (let name of suites) {
+        it(name, function () {
+            let app = express();
+            let suite = require(`./${name}/`);
+            let expectedFailures = suite(app);
+            return expect(startServer(name, app)).eventually.become(expectedFailures);
+        });
+    }
 });
-

@@ -2,12 +2,13 @@
 
 let sinon = require('sinon');
 let chai = require('chai');
-let sinonChai = require('sinon-chai');
 let expect = chai.expect;
+let sinonChai = require('sinon-chai');
 chai.use(sinonChai);
 let proxyquire = require('proxyquire');
 
 describe('The bin module', function() {
+    //noinspection JSUnresolvedVariable
     let sandbox = sinon.sandbox.create();
     let pathStub,
         fsStub,
@@ -24,9 +25,12 @@ describe('The bin module', function() {
         commanderStub.version = sandbox.stub().returns(commanderStub);
         commanderStub.option = sandbox.stub().returns(commanderStub);
         commanderStub.parse = sandbox.stub().returns(commanderStub);
+        commanderStub.url = sandbox.stub();
+        commanderStub.spec = sandbox.stub();
         STSSpy = sandbox.spy();
-        STSMock = function STS(program) {
-            STSSpy(program);
+        STSMock = function STS() {
+            //noinspection JSCheckFunctionSignatures
+            STSSpy.apply(this, arguments);
         };
         STSMock.prototype.start = sandbox.stub();
     });
@@ -42,23 +46,21 @@ describe('The bin module', function() {
             'commander': commanderStub,
             '../': STSMock
         });
-        expect(pathStub.join).to.have.been.calledWithExactly(sinon.match.string, '..', 'package.json');
-        expect(fsStub.readFileSync).to.have.been.calledWithExactly(pathStub, 'utf8');
-        expect(commanderStub.version).to.have.been.calledWithExactly('1.2.3');
-        expect(commanderStub.option).to.have.been.calledWithExactly(
-            '-p, --protocol [protocol]', 'protocol [http, https], default http', 'http');
-        expect(commanderStub.option).to.have.been.calledWithExactly(
-            '-h, --host [host]', 'API host, default localhost', 'localhost');
-        expect(commanderStub.option).to.have.been.calledWithExactly(
-            '-P, --port [port]', 'API port, default 8081', '8081');
-        expect(commanderStub.option).to.have.been.calledWithExactly(
+        //noinspection JSUnresolvedVariable
+        expect(pathStub.join).to.calledWithExactly(sinon.match.string, '..', 'package.json');
+        expect(fsStub.readFileSync).to.calledWithExactly(pathStub, 'utf8');
+        expect(commanderStub.version).to.calledWithExactly('1.2.3');
+        expect(commanderStub.option).to.calledWithExactly(
+            '-u, --url [URL]', 'API URL, default http://localhost:8081', 'http://localhost:8081');
+        expect(commanderStub.option).to.calledWithExactly(
             '-s, --spec [path]', 'json/yaml swagger file path, default ./swagger.yml', './swagger.yml');
-        expect(commanderStub.parse).to.have.been.calledWithExactly(process.argv);
-        expect(STSSpy).to.have.been.calledWithExactly(commanderStub);
-        expect(STSMock.prototype.start).to.have.been.calledWithExactly(sinon.match.func);
+        expect(commanderStub.parse).to.calledWithExactly(process.argv);
+        expect(STSSpy).to.calledWithExactly(commanderStub.url, commanderStub.spec);
+        //noinspection JSUnresolvedVariable
+        expect(STSMock.prototype.start).to.calledWithExactly(sinon.match.func);
 
         let exitStub = sandbox.stub(process, 'exit');
-        STSMock.prototype.start.args[0][0](1);
-        expect(exitStub).to.have.been.calledWithExactly(1);
+        STSMock.prototype.start.args[0][0](-1);
+        expect(exitStub).to.calledWithExactly(-1);
     });
 });

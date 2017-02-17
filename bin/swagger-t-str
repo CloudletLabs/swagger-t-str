@@ -8,13 +8,11 @@ let STS = require('../');
 
 program
     .version(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')).version)
-    .option('-p, --protocol [protocol]', 'protocol [http, https], default http', 'http')
-    .option('-h, --host [host]', 'API host, default localhost', 'localhost')
-    .option('-P, --port [port]', 'API port, default 8081', '8081')
+    .option('-u, --url [URL]', 'API URL, default http://localhost:8081', 'http://localhost:8081')
     .option('-s, --spec [path]', 'json/yaml swagger file path, default ./swagger.yml', './swagger.yml')
     .parse(process.argv);
 
-let sts = new STS(program);
+let sts = new STS(program.url, program.spec);
 sts.start(function(failures){
     process.exit(failures);
 });
