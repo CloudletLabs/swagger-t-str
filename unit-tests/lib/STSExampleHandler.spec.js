@@ -111,7 +111,8 @@ describe('STSExampleHandler module', function() {
             expect(normalized).to.eql({
                 request: {
                     headers: {},
-                    parameters: {}
+                    parameters: {},
+                    body: {}
                 },
                 response: {
                     status: 200
@@ -128,6 +129,9 @@ describe('STSExampleHandler module', function() {
                     },
                     parameters: {
                         baz: {}
+                    },
+                    body: {
+                        xyz: {}
                     }
                 },
                 response: {
